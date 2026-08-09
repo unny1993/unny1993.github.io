@@ -1412,3 +1412,47 @@ a { color: inherit; text-decoration: none; }
     flex-direction: column;
     gap: 16px;
 }
+
+/* ===== GitHub Token Bar ===== */
+.admin-token-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 20px;
+    margin-bottom: 16px;
+    background: #111111;
+    border: 1px solid #222222;
+    border-radius: 8px;
+    flex-wrap: wrap;
+}
+.admin-token-bar .admin-input {
+    background: #1a1a1a;
+    border: 1px solid #333333;
+    color: #ffffff;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-family: inherit;
+}
+.admin-token-bar .admin-input::placeholder {
+    color: #555555;
+}
+.admin-token-bar .btn {
+    font-size: 13px;
+    padding: 8px 16px;
+}
+.admin-token-bar .admin-btn-sm {
+    font-size: 12px;
+    padding: 6px 12px;
+}
+
+@media (max-width: 768px) {
+    .admin-token-bar {
+        flex-direction: column;
+        align-items: stretch;
+        padding: 12px;
+    }
+    .admin-token-bar .admin-input {
+        max-width: 100% !important;
+    }
+}

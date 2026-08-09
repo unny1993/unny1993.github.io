@@ -4,6 +4,26 @@
  * 数据仪表盘：从 blog_trade_records 动态计算指标和图表
  */
 
+
+// ===== GitHub Issues CMS 配置 =====
+var GH_OWNER = 'unny1993';
+var GH_REPO = 'unny1993.github.io';
+var GH_API_BASE = 'https://api.github.com/repos/' + GH_OWNER + '/' + GH_REPO;
+var GH_LABEL_MAP = {
+    'blog_articles': 'article',
+    'blog_moments': 'moment',
+    'blog_gallery': 'album',
+    'blog_collections': 'collection',
+    'blog_trade_records': 'trade'
+};
+var GH_KEY_BY_LABEL = {
+    'article': 'blog_articles',
+    'moment': 'blog_moments',
+    'album': 'blog_gallery',
+    'collection': 'blog_collections',
+    'trade': 'blog_trade_records'
+};
+
 // ===== 默认数据 =====
 const DEFAULT_ARTICLES = [
     { id: 1, title: "JavaScript 异步编程深入理解", category: "前端", date: "2026-07-28", excerpt: "从回调地狱到 Promise，再到 async/await，深入探讨 JavaScript 异步编程的演进历程与最佳实践。", content: "<p>JavaScript 的异步编程模型经历了多次重大变革。理解这些变革背后的动机，对于写出高质量的前端代码至关重要。</p><h2>回调函数时代</h2><p>早期的 JavaScript 异步操作依赖回调函数。当多个异步操作需要按顺序执行时，代码会迅速变成所谓的\"回调地狱\"。</p><pre><code>fetchUser(userId, function(user) {\n    fetchPosts(user.id, function(posts) {\n        fetchComments(posts[0].id, function(comments) {\n            console.log(comments);\n        });\n    });\n});</code></pre><h2>Promise 的引入</h2><p>Promise 提供了一种更优雅的方式来处理异步操作。它将异步操作封装成一个对象，通过 <code>.then()</code> 链式调用来组织流程，避免了深层嵌套。</p><h2>async / await</h2><p>ES2017 引入的 async/await 语法将异步代码写成了同步风格，极大提升了可读性。它是基于 Promise 的语法糖，但让错误处理（try/catch）和条件逻辑变得更加自然。</p><blockquote>选择哪种异步方案取决于具体场景：简单串行用 async/await，需要并发控制时善用 Promise.all 和 Promise.race。</blockquote>" },
@@ -75,6 +95,194 @@ function loadFromStorage(key, defaults) {
 function saveToStorage(key, data) {
     localStorage.setItem(key, JSON.stringify(data));
 }
+
+// ===== GitHub Token 管理 =====
+function getToken() {
+    return sessionStorage.getItem('gh_token') || '';
+}
+
+function setToken(token) {
+    sessionStorage.setItem('gh_token', token);
+}
+
+function clearToken() {
+    sessionStorage.removeItem('gh_token');
+}
+
+function hasToken() {
+    return !!sessionStorage.getItem('gh_token');
+}
+
+// ===== GitHub API 请求 =====
+function ghApiRequest(endpoint, options) {
+    var token = getToken();
+    var headers = { 'Accept': 'application/vnd.github.v3+json', 'Content-Type': 'application/json' };
+    if (token) {
+        headers['Authorization'] = 'token ' + token;
+    }
+    var fetchOpts = { headers: headers };
+    if (options && options.method) {
+        fetchOpts.method = options.method;
+    }
+    if (options && options.body) {
+        fetchOpts.body = JSON.stringify(options.body);
+    }
+    return fetch(GH_API_BASE + endpoint, fetchOpts).then(function(res) {
+        if (!res.ok) throw new Error('GitHub API ' + res.status + ': ' + endpoint);
+        if (res.status === 204) return null;
+        return res.json();
+    });
+}
+
+// ===== 从 GitHub 拉取数据 =====
+function ghFetchByLabel(label) {
+    return ghApiRequest('/issues?labels=' + label + '&state=open&per_page=100').catch(function() {
+        return null;
+    });
+}
+
+// ===== 读取：把所有 label 的数据合并到运行时数组 =====
+function ghLoadAllData() {
+    var labels = ['article', 'moment', 'album', 'collection', 'trade'];
+    return Promise.all(labels.map(function(label) {
+        return ghFetchByLabel(label).then(function(issues) {
+            if (!issues || !issues.length) return { label: label, data: [] };
+            var parsed = [];
+            for (var i = 0; i < issues.length; i++) {
+                try {
+                    var d = JSON.parse(issues[i].body || '');
+                    d._ghIssueNumber = issues[i].number;
+                    parsed.push(d);
+                } catch(e) { /* skip malformed */ }
+            }
+            return { label: label, data: parsed };
+        });
+    })).then(function(results) {
+        var changed = false;
+        for (var i = 0; i < results.length; i++) {
+            var r = results[i];
+            var key = GH_KEY_BY_LABEL[r.label];
+            if (!key) continue;
+            if (r.data.length > 0) {
+                if (key === 'blog_articles') {
+                    articles = r.data;
+                    localStorage.setItem(key, JSON.stringify(articles));
+                    changed = true;
+                } else if (key === 'blog_moments') {
+                    moments = r.data;
+                    localStorage.setItem(key, JSON.stringify(moments));
+                    changed = true;
+                } else if (key === 'blog_gallery') {
+                    galleryItems = r.data;
+                    localStorage.setItem(key, JSON.stringify(galleryItems));
+                    changed = true;
+                } else if (key === 'blog_collections') {
+                    collections = r.data;
+                    localStorage.setItem(key, JSON.stringify(collections));
+                    changed = true;
+                } else if (key === 'blog_trade_records') {
+                    tradeRecords = r.data;
+                    localStorage.setItem(key, JSON.stringify(tradeRecords));
+                    changed = true;
+                }
+            }
+        }
+        if (changed) {
+            renderCurrentView();
+        }
+    });
+}
+
+function renderCurrentView() {
+    switch (currentView) {
+        case 'home': break;
+        case 'moments': renderMoments(); break;
+        case 'articles': renderAllPosts(); break;
+        case 'gallery': renderGallery(); break;
+        case 'collections': renderCollections(); break;
+        case 'data': window.refreshDashboard && window.refreshDashboard(); break;
+        case 'admin': renderAdmin(); break;
+    }
+}
+
+// ===== 写入：同步到 GitHub =====
+function ghSyncCreate(label, bodyObj, title) {
+    if (!hasToken()) return Promise.resolve(null);
+    return ghApiRequest('/issues', {
+        method: 'POST',
+        body: { title: title, body: JSON.stringify(bodyObj), labels: [label] }
+    }).then(function(issue) {
+        return issue ? issue.number : null;
+    }).catch(function() { return null; });
+}
+
+function ghSyncUpdate(issueNumber, bodyObj) {
+    if (!hasToken()) return Promise.resolve(null);
+    return ghApiRequest('/issues/' + issueNumber, {
+        method: 'PATCH',
+        body: { body: JSON.stringify(bodyObj) }
+    }).catch(function() { return null; });
+}
+
+function ghSyncClose(issueNumber) {
+    if (!hasToken()) return Promise.resolve(null);
+    return ghApiRequest('/issues/' + issueNumber, {
+        method: 'PATCH',
+        body: { state: 'closed' }
+    }).catch(function() { return null; });
+}
+
+// ===== Seed 数据：如果 Issues 为空，用默认数据创建初始 Issues =====
+function ghSeedDataIfEmpty() {
+    if (!hasToken()) return;
+    var labels = ['article', 'moment', 'album', 'collection', 'trade'];
+    var task = Promise.resolve();
+    labels.forEach(function(label) {
+        task = task.then(function() {
+            return ghFetchByLabel(label).then(function(issues) {
+                if (issues && issues.length > 0) return;
+                // 本地也没有数据（不是从 GitHub 来的）→ 用默认数据创建 seed
+                var key = GH_KEY_BY_LABEL[label];
+                var defs;
+                if (key === 'blog_articles') defs = DEFAULT_ARTICLES;
+                else if (key === 'blog_moments') defs = DEFAULT_MOMENTS;
+                else if (key === 'blog_gallery') defs = DEFAULT_GALLERY;
+                else if (key === 'blog_collections') defs = DEFAULT_COLLECTIONS;
+                else if (key === 'blog_trade_records') defs = DEFAULT_TRADE_RECORDS;
+                else return;
+                if (!defs || !defs.length) return;
+                var chain = Promise.resolve();
+                defs.forEach(function(item) {
+                    chain = chain.then(function() {
+                        var body = JSON.parse(JSON.stringify(item));
+                        delete body._ghIssueNumber;
+                        var title = (label === 'trade')
+                            ? ('trade_' + (item.id || ''))
+                            : (item.title || item.name || item.date || item.content || '');
+                        return ghSyncCreate(label, body, title).then(function(issueNum) {
+                            if (issueNum) item._ghIssueNumber = issueNum;
+                        });
+                    });
+                });
+                return chain;
+            });
+        });
+    });
+    return task;
+}
+
+// ===== 从 GitHub 删除（关闭 Issue）=====
+function ghSyncDeleteByLabel(key, itemId, matchFn) {
+    if (!hasToken()) return;
+    var item = matchFn(itemId);
+    if (!item || !item._ghIssueNumber) return;
+    ghSyncClose(item._ghIssueNumber);
+}
+
+// ===== 页面加载后尝试从 GitHub 同步 =====
+(function initGitHubLoad() {
+    ghLoadAllData();
+})();
 
 // ===== 运行时数据 =====
 let articles = loadFromStorage('blog_articles', DEFAULT_ARTICLES);
@@ -376,7 +584,46 @@ let editingGalleryIndex = null;
 let editingCollectionIndex = null;
 let editingTradeId = null;
 
+// ===== Token 状态栏 =====
+function renderAdminToken() {
+    var bar = document.getElementById('admin-token-bar');
+    if (!bar) return;
+    if (hasToken()) {
+        bar.innerHTML = '<span style="color:#22c55e;font-size:13px;">Token 已设置 (****' + getToken().slice(-4) + ')</span>' +
+            '<button class="admin-btn-sm" id="admin-token-clear" style="margin-left:8px;background:#3d1f0f;color:#ff6b6b;">清除</button>' +
+            '<button class="admin-btn-sm" id="admin-token-seed" style="margin-left:8px;background:#1a2a1a;color:#4ade80;">推送默认数据</button>';
+        document.getElementById('admin-token-clear').addEventListener('click', function() {
+            clearToken();
+            renderAdminToken();
+            renderAdmin();
+        });
+        document.getElementById('admin-token-seed').addEventListener('click', function() {
+            if (confirm('将默认数据（文章/瞬间/相册/文集/交易记录）推送到 GitHub Issues？')) {
+                ghSeedDataIfEmpty().then(function() {
+                    renderAdminToken();
+                    renderAdmin();
+                });
+            }
+        });
+    } else {
+        bar.innerHTML = '<input type="password" id="admin-token-input" class="admin-input" placeholder="GitHub Personal Access Token（repo 权限）" style="flex:1;max-width:400px;">' +
+            '<button class="btn btn-primary" id="admin-token-save" style="margin-left:8px;">保存 Token</button>' +
+            '<a href="https://github.com/settings/tokens" target="_blank" style="font-size:12px;color:var(--text-secondary);margin-left:8px;">获取 Token</a>';
+        document.getElementById('admin-token-save').addEventListener('click', function() {
+            var val = document.getElementById('admin-token-input').value.trim();
+            if (val) {
+                setToken(val);
+                renderAdminToken();
+                // token 已设置，后台静默同步
+                ghLoadAllData();
+            }
+        });
+    }
+}
+
+
 function renderAdmin() {
+    renderAdminToken();
     renderArticleCategorySelect();
     renderAdminArticles();
     renderAdminMoments();
@@ -434,8 +681,10 @@ function bindAdminArticleEvents() {
     document.querySelectorAll('[data-del-article]').forEach(function(btn) {
         btn.addEventListener('click', function() {
             var id = parseInt(btn.dataset.delArticle);
+            var delArt = articles.find(function(a) { return a.id === id; });
             articles = articles.filter(function(a) { return a.id !== id; });
             saveToStorage('blog_articles', articles);
+            if (hasToken() && delArt && delArt._ghIssueNumber) { ghSyncClose(delArt._ghIssueNumber); }
             renderAdminArticles();
             renderAllPosts();
         });
@@ -461,6 +710,9 @@ document.getElementById('admin-article-submit').addEventListener('click', functi
     }
 
     saveToStorage('blog_articles', articles);
+    var art = articles[articles.length - 1];
+    if (!editingArticleId && hasToken()) { ghSyncCreate('article', {id:art.id,title:art.title,category:art.category,date:art.date,excerpt:art.excerpt,content:art.content}, art.title).then(function(n) { if (n) art._ghIssueNumber = n; localStorage.setItem('blog_articles', JSON.stringify(articles)); }); }
+    if (editingArticleId && hasToken()) { var ea = articles.find(function(x) { return x.id === editingArticleId; }); if (ea && ea._ghIssueNumber) { var b = {id:ea.id,title:ea.title,category:ea.category,date:ea.date,excerpt:ea.excerpt,content:ea.content}; ghSyncUpdate(ea._ghIssueNumber, b); } }
     cancelEditArticle();
     renderAdminArticles();
     renderAllPosts();
@@ -500,7 +752,10 @@ function renderAdminMoments() {
         btn.addEventListener('click', function() {
             var i = parseInt(btn.dataset.delMoment);
             moments.splice(i, 1);
+            var dm = moments[i];
+            moments.splice(i, 1);
             saveToStorage('blog_moments', moments);
+            if (hasToken() && dm && dm._ghIssueNumber) { ghSyncClose(dm._ghIssueNumber); }
             renderAdminMoments();
             renderMoments();
         });
@@ -514,6 +769,7 @@ document.getElementById('admin-moment-submit').addEventListener('click', functio
 
     moments.unshift({ date: date, content: content });
     saveToStorage('blog_moments', moments);
+    if (hasToken()) { var nm = moments[0]; ghSyncCreate('moment', {date:nm.date,content:nm.content}, nm.date).then(function(n) { if (n) nm._ghIssueNumber = n; localStorage.setItem('blog_moments', JSON.stringify(moments)); }); }
     document.getElementById('admin-moment-date').value = '';
     document.getElementById('admin-moment-content').value = '';
     renderAdminMoments();
@@ -554,8 +810,10 @@ function renderAdminGallery() {
     document.querySelectorAll('[data-del-gallery]').forEach(function(btn) {
         btn.addEventListener('click', function() {
             var i = parseInt(btn.dataset.delGallery);
+            var dg = galleryItems[i];
             galleryItems.splice(i, 1);
             saveToStorage('blog_gallery', galleryItems);
+            if (hasToken() && dg && dg._ghIssueNumber) { ghSyncClose(dg._ghIssueNumber); }
             renderAdminGallery();
             renderGallery();
         });
@@ -575,6 +833,8 @@ document.getElementById('admin-gallery-submit').addEventListener('click', functi
     }
 
     saveToStorage('blog_gallery', galleryItems);
+    if (!editingGalleryIndex && hasToken()) { var ng = galleryItems[galleryItems.length - 1]; ghSyncCreate('album', {title:ng.title,url:ng.url,color:ng.color}, ng.title).then(function(n) { if (n) ng._ghIssueNumber = n; localStorage.setItem('blog_gallery', JSON.stringify(galleryItems)); }); }
+    if (editingGalleryIndex !== null && editingGalleryIndex >= 0 && hasToken()) { var eg = galleryItems[editingGalleryIndex]; if (eg && eg._ghIssueNumber) ghSyncUpdate(eg._ghIssueNumber, {title:eg.title,url:eg.url,color:eg.color}); }
     cancelEditGallery();
     renderAdminGallery();
     renderGallery();
@@ -636,8 +896,10 @@ function renderAdminCollections() {
     document.querySelectorAll('[data-del-collection]').forEach(function(btn) {
         btn.addEventListener('click', function() {
             var i = parseInt(btn.dataset.delCollection);
+            var dc = collections[i];
             collections.splice(i, 1);
             saveToStorage('blog_collections', collections);
+            if (hasToken() && dc && dc._ghIssueNumber) { ghSyncClose(dc._ghIssueNumber); }
             renderAdminCollections();
             renderCollections();
         });
@@ -660,6 +922,8 @@ document.getElementById('admin-collection-submit').addEventListener('click', fun
     }
 
     saveToStorage('blog_collections', collections);
+    if (!editingCollectionIndex && hasToken()) { var nc = collections[collections.length - 1]; ghSyncCreate('collection', {name:nc.name,articleIds:nc.articleIds}, nc.name).then(function(n) { if (n) nc._ghIssueNumber = n; localStorage.setItem('blog_collections', JSON.stringify(collections)); }); }
+    if (editingCollectionIndex !== null && editingCollectionIndex >= 0 && hasToken()) { var ec = collections[editingCollectionIndex]; if (ec && ec._ghIssueNumber) ghSyncUpdate(ec._ghIssueNumber, {name:ec.name,articleIds:ec.articleIds}); }
     cancelEditCollection();
     renderAdminCollections();
     renderCollections();
@@ -714,8 +978,10 @@ function renderAdminTrades() {
         btn.addEventListener('click', function() {
             var id = parseInt(btn.dataset.delTrade);
             if (confirm('确认删除该交易记录？')) {
+                var dt = tradeRecords.find(function(r) { return r.id === id; });
                 tradeRecords = tradeRecords.filter(function(r) { return r.id !== id; });
                 saveToStorage('blog_trade_records', tradeRecords);
+                if (hasToken() && dt && dt._ghIssueNumber) { ghSyncClose(dt._ghIssueNumber); }
                 renderAdminTrades();
                 window.refreshDashboard && window.refreshDashboard();
             }
@@ -745,6 +1011,12 @@ document.getElementById('admin-trade-submit').addEventListener('click', function
     }
 
     saveToStorage('blog_trade_records', tradeRecords);
+    var tr = editingTradeId ? tradeRecords.find(function(r) { return r.id === editingTradeId; }) : tradeRecords[tradeRecords.length - 1];
+    if (tr && hasToken()) {
+        var trBody = {id:tr.id,date:tr.date,type:tr.type,code:tr.code,name:tr.name,amount:tr.amount,fee:tr.fee};
+        if (tr._ghIssueNumber) { ghSyncUpdate(tr._ghIssueNumber, trBody); }
+        else { ghSyncCreate('trade', trBody, 'trade_' + tr.id).then(function(n) { if (n) { tr._ghIssueNumber = n; localStorage.setItem('blog_trade_records', JSON.stringify(tradeRecords)); } }); }
+    }
     cancelEditTrade();
     renderAdminTrades();
     window.refreshDashboard && window.refreshDashboard();
