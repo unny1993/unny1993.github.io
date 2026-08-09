@@ -1,0 +1,1110 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>个人博客</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <style>.bg-canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none}</style>
+    <script src="app.js" defer></script>
+</head>
+<body>
+    <canvas class="bg-canvas" id="bg-canvas"></canvas>
+    <header class="site-header">
+        <div class="header-inner">
+            <nav>
+                <a href="#" class="nav-link active" data-view="home">首页</a>
+                <a href="#" class="nav-link" data-view="moments">瞬间</a>
+                <a href="#" class="nav-link" data-view="articles">文章</a>
+                <a href="#" class="nav-link" data-view="gallery">相册</a>
+                <a href="#" class="nav-link" data-view="collections">文集</a>
+                <a href="#" class="nav-link" data-view="data">数据</a>
+                <a href="#" class="nav-link" data-view="guestbook">留言</a>
+                <a href="#" class="nav-link" data-view="about">关于</a>
+                <a href="#" class="nav-link" data-view="admin">管理</a>
+            </nav>
+            <div class="header-search">
+                <input type="text" class="header-search-input" placeholder="搜索文章..." autocomplete="off">
+                <div class="search-dropdown" style="display:none">
+                    <div class="search-dropdown-inner"></div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="site-main">
+
+        <!-- 1. Home -->
+        <section id="view-home" class="view active">
+            <div class="hero">
+                <div class="hero-title-wrapper">
+                    <canvas class="hero-canvas" id="hero-canvas"></canvas>
+                    <div class="hero-line2" id="hero-line2">来自普通人的梦呓</div>
+                </div>
+                <p class="hero-subtitle" id="hero-subtitle">一个赌徒的自我修养。</p>
+                <div class="hero-actions" id="hero-actions">
+                    <a href="#" class="btn btn-primary" data-view="about">梦的开始</a>
+                    <a href="/rss.xml" class="btn btn-secondary"><svg class="btn-icon" width="18" height="18" viewBox="0 0 24 24"><circle cx="6.18" cy="17.82" r="2.18" fill="#f97316"/><path d="M4 4.44v2.83c7.03 0 12.73 5.7 12.73 12.73h2.83c0-8.59-6.97-15.56-15.56-15.56z" fill="#f97316"/><path d="M4 10.1v2.83c3.9 0 7.07 3.17 7.07 7.07h2.83c0-5.47-4.43-9.9-9.9-9.9z" fill="#f97316"/></svg>RSS订阅</a>
+                </div>
+            </div>
+        </section>
+
+        <!-- 2. Moments -->
+        <section id="view-moments" class="view">
+            <div class="section section-top">
+                <h2 class="section-label">瞬间</h2>
+                <div id="moments-list" class="moments-list"></div>
+            </div>
+        </section>
+
+        <!-- 3. Articles -->
+        <section id="view-articles" class="view">
+            <div class="section section-top">
+                <h2 class="section-label">所有文章</h2>
+                <div id="all-posts" class="post-feed"></div>
+            </div>
+        </section>
+
+        <!-- 4. Gallery -->
+        <section id="view-gallery" class="view">
+            <div class="section section-top">
+                <h2 class="section-label">相册</h2>
+                <div id="gallery-grid" class="gallery-grid"></div>
+            </div>
+        </section>
+
+        <!-- 5. Collections -->
+        <section id="view-collections" class="view">
+            <div class="section section-top">
+                <h2 class="section-label">文集</h2>
+                <div id="collections-list" class="collections-list"></div>
+            </div>
+        </section>
+
+        <!-- 6. Data -->
+        <section id="view-data" class="view">
+            <div class="section section-top">
+                <h2 class="section-label">数据</h2>
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <div class="metric-title">累计收益率</div>
+                        <div class="metric-value" id="metric-return-rate">--</div>
+                        <div class="metric-sub" id="metric-sub-annual">--</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-title">累计盈亏</div>
+                        <div class="metric-value metric-value-red" id="metric-net-pnl">¥--</div>                                            </div>
+                    <div class="metric-card">
+                        <div class="metric-title">期末总资产</div>
+                        <div class="metric-value" id="metric-total-asset">¥--</div>
+                        <div class="metric-sub" id="metric-sub-capital">本金：¥20,000</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-title">最大回撤幅度</div>
+                        <div class="metric-value metric-value-green" id="metric-max-drawdown">--</div>                                            </div>
+                    <div class="metric-card">
+                        <div class="metric-title">交易费用率</div>
+                        <div class="metric-value" id="metric-fee-rate">--</div>                                            </div>
+                    <div class="metric-card">
+                        <div class="metric-title">实盘交易自然天数</div>
+                        <div class="metric-value" id="metric-days">9天</div>
+                        <div class="metric-sub" id="metric-sub-start">起始：2026.08.01</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-title">胜率</div>
+                        <div class="metric-value metric-value-na" id="metric-win-rate">N/A</div>                                            </div>
+                    <div class="metric-card">
+                        <div class="metric-title">频率</div>
+                        <div class="metric-value metric-value-na" id="metric-frequency">N/A</div>                                            </div>
+                    <div class="metric-card">
+                        <div class="metric-title">盈亏比</div>
+                        <div class="metric-value metric-value-na" id="metric-pnl-ratio">N/A</div>                                            </div>
+                </div>
+                <div class="charts-row">
+                    <div class="chart-card">
+                        <h3 class="chart-title">盈利曲线</h3>
+                        <div class="chart-canvas-wrap">
+                            <canvas id="profit-curve-canvas"></canvas>
+                        </div>
+                        <p class="chart-note">注释：逐日累计净盈亏（利息-费用），08-03至08-07共5天，期末净盈利¥3.53。</p>
+                    </div>
+                    <div class="chart-card">
+                        <h3 class="chart-title">实盘三维</h3>
+                        <div class="chart-canvas-wrap">
+                            <canvas id="radar-canvas"></canvas>
+                        </div>
+                        <p class="chart-note">注释：三维雷达图展示胜率、频率、盈亏比三个维度。本周无实盘样本，所有维度均为N/A。</p>
+                    </div>
+                    <div class="chart-card">
+                        <h3 class="chart-title">收益与成本构成</h3>
+                        <div class="chart-canvas-wrap">
+                            <canvas id="donut-canvas"></canvas>
+                        </div>
+                        <div class="chart-legend">
+                            <span class="legend-item"><i class="legend-dot" style="background:#888888"></i>手续费</span>
+                            <span class="legend-item"><i class="legend-dot" style="background:#AAAAAA"></i>逆回购盈利</span>
+                            <span class="legend-item"><i class="legend-dot" style="background:#666666"></i>股票盈利</span>
+                            <span class="legend-item"><i class="legend-dot" style="background:#444444"></i>股票亏损</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 7. Guestbook -->
+        <section id="view-guestbook" class="view">
+            <div class="section section-top">
+                <h2 class="section-label">留言</h2>
+                <div id="guestbook-messages" class="guestbook-messages"></div>
+                <div class="guestbook-form">
+                    <input type="text" class="gb-input gb-input-name" placeholder="昵称">
+                    <textarea class="gb-textarea" placeholder="写下你想说的话..." rows="4"></textarea>
+                    <button class="btn btn-primary gb-submit" id="gb-submit-btn" disabled>提交留言</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- 8. About -->
+        <section id="view-about" class="view">
+            <div class="section section-top about-section">
+                <div class="about-avatar">
+                    <img src="avatar.jpeg" alt="头像">
+                </div>
+                <h2 class="section-label">关于</h2>
+                <div class="about-intro">
+                    <p>之于世界，观察，思考，解构</p>
+                    <p>寻找自我存在的价值，与破除幻觉的方法</p>
+                </div>
+                <div class="about-positioning">
+                    <h3 class="about-subtitle">定位</h3>
+                    <p>记录人生痕迹的同时，也想保留发牢骚的自留地</p>
+                </div>
+                <div class="about-timeline">
+                    <h3 class="about-subtitle">时间线</h3>
+                    <ul class="timeline-list">
+                        <li><span class="timeline-date">2026.08.01</span><span class="timeline-desc">梦开始的地方</span></li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- Article Detail (overlay, not in nav) -->
+        <section id="view-detail" class="view">
+            <div id="article-content" class="article-detail"></div>
+        </section>
+
+        <!-- 9. Admin -->
+        <section id="view-admin" class="view">
+            <div class="section section-top">
+                <h2 class="section-label">管理后台</h2>
+                <div class="admin-tabs">
+                    <button class="admin-tab active" data-admin-tab="articles">文章管理</button>
+                    <button class="admin-tab" data-admin-tab="moments">瞬间管理</button>
+                    <button class="admin-tab" data-admin-tab="gallery">相册管理</button>
+                    <button class="admin-tab" data-admin-tab="collections">文集管理</button>
+                    <button class="admin-tab" data-admin-tab="trades">交易记录</button>
+                </div>
+                <div class="admin-header-right">
+                    <button class="admin-pwd-btn" id="admin-change-pwd">修改密码</button>
+                </div>
+
+                <!-- 文章管理 -->
+                <div class="admin-panel active" id="admin-panel-articles">
+                    <h3 id="admin-article-form-title">新增文章</h3>
+                    <div class="admin-form">
+                        <input type="hidden" id="admin-edit-article-id" value="">
+                        <input type="text" class="admin-input" id="admin-article-title" placeholder="标题">
+                        <select class="admin-select" id="admin-article-category">
+                        </select>
+                        <input type="date" class="admin-input" id="admin-article-date">
+                        <input type="text" class="admin-input" id="admin-article-excerpt" placeholder="摘要">
+                        <textarea class="admin-textarea" id="admin-article-content" placeholder="正文 (HTML)" rows="8"></textarea>
+                        <div style="display:flex;gap:12px;">
+                            <button class="btn btn-primary" id="admin-article-submit">添加文章</button>
+                            <button class="btn btn-secondary" id="admin-article-cancel" style="display:none;">取消编辑</button>
+                        </div>
+                    </div>
+                    <h3>文章列表</h3>
+                    <div class="admin-list" id="admin-articles-list"></div>
+                </div>
+
+                <!-- 瞬间管理 -->
+                <div class="admin-panel" id="admin-panel-moments">
+                    <h3>新增瞬间</h3>
+                    <div class="admin-form">
+                        <input type="date" class="admin-input" id="admin-moment-date">
+                        <textarea class="admin-textarea" id="admin-moment-content" placeholder="内容" rows="3"></textarea>
+                        <button class="btn btn-primary" id="admin-moment-submit">添加瞬间</button>
+                    </div>
+                    <h3>瞬间列表</h3>
+                    <div class="admin-list" id="admin-moments-list"></div>
+                </div>
+
+                <!-- 相册管理 -->
+                <div class="admin-panel" id="admin-panel-gallery">
+                    <h3 id="admin-gallery-form-title">新增相册项</h3>
+                    <div class="admin-form">
+                        <input type="hidden" id="admin-edit-gallery-index" value="">
+                        <input type="text" class="admin-input" id="admin-gallery-title" placeholder="标题">
+                        <input type="text" class="admin-input" id="admin-gallery-url" placeholder="图片 URL（可选）">
+                        <div style="display:flex;align-items:center;gap:8px;">
+                            <label style="font-size:14px;color:var(--text-secondary);">色块颜色</label>
+                            <input type="color" class="admin-color-input" id="admin-gallery-color" value="#2d1b4e">
+                        </div>
+                        <div style="display:flex;gap:12px;">
+                            <button class="btn btn-primary" id="admin-gallery-submit">添加</button>
+                            <button class="btn btn-secondary" id="admin-gallery-cancel" style="display:none;">取消编辑</button>
+                        </div>
+                    </div>
+                    <h3>相册列表</h3>
+                    <div class="admin-list" id="admin-gallery-list"></div>
+                </div>
+
+                <!-- 文集管理 -->
+                <div class="admin-panel" id="admin-panel-collections">
+                    <h3 id="admin-collection-form-title">新增文集</h3>
+                    <div class="admin-form">
+                        <input type="hidden" id="admin-edit-collection-index" value="">
+                        <input type="text" class="admin-input" id="admin-collection-name" placeholder="文集名称">
+                        <div class="admin-checklist" id="admin-collection-articles-checklist"></div>
+                        <div style="display:flex;gap:12px;">
+                            <button class="btn btn-primary" id="admin-collection-submit">添加文集</button>
+                            <button class="btn btn-secondary" id="admin-collection-cancel" style="display:none;">取消编辑</button>
+                        </div>
+                    </div>
+                    <h3>文集列表</h3>
+                    <div class="admin-list" id="admin-collections-list"></div>
+                </div>
+
+                <!-- 交易记录管理 -->
+                <div class="admin-panel" id="admin-panel-trades">
+                    <h3 id="admin-trade-form-title">新增交易记录</h3>
+                    <div class="admin-form">
+                        <input type="hidden" id="admin-edit-trade-id" value="">
+                        <input type="date" class="admin-input" id="admin-trade-date">
+                        <select class="admin-select" id="admin-trade-type">
+                            <option value="逆回购买入">逆回购买入</option>
+                            <option value="逆回购卖出">逆回购卖出</option>
+                            <option value="股票买入">股票买入</option>
+                            <option value="股票卖出">股票卖出</option>
+                        </select>
+                        <input type="text" class="admin-input" id="admin-trade-code" placeholder="代码（如131810）">
+                        <input type="text" class="admin-input" id="admin-trade-name" placeholder="名称（如R-001）">
+                        <input type="number" class="admin-input" id="admin-trade-amount" placeholder="金额" step="0.01">
+                        <input type="number" class="admin-input" id="admin-trade-fee" placeholder="手续费" step="0.01">
+                        <div style="display:flex;gap:12px;">
+                            <button class="btn btn-primary" id="admin-trade-submit">添加记录</button>
+                            <button class="btn btn-secondary" id="admin-trade-cancel" style="display:none;">取消编辑</button>
+                        </div>
+                    </div>
+                    <h3>交易记录列表</h3>
+                    <div class="admin-list" id="admin-trades-list"></div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="site-footer">
+    </footer>
+
+    <script src="app.js"></script>
+    <script>
+(function() {
+    var canvas = document.getElementById('hero-canvas');
+    if (!canvas) return;
+    var animSheet = document.createElement('style');
+    animSheet.textContent = '.hero-line2{clip-path:inset(0 100% 0 0);transition:clip-path 3s ease,opacity 3s ease}.hero-line2.reveal{clip-path:inset(0 0 0 0);opacity:1}';
+    document.head.appendChild(animSheet);
+    var ctx = canvas.getContext('2d');
+
+    var TEXT = '致幻';
+    var COLS = 8, ROWS = 4;
+    var DURATION = 2500;
+
+    var triangles = [];
+    var offscreenCanvas = null;
+    var size = null;
+    var startTime = null;
+    var assembled = false;
+    var nextGlitchTime = 0;
+    var animId = null;
+    var serialStarted = false;
+
+    function getFontSize() {
+        return Math.max(48, Math.min(72, window.innerWidth * 0.06));
+    }
+
+    function setup() {
+        var fontSize = getFontSize();
+        var dpr = window.devicePixelRatio || 1;
+        var cssW = Math.ceil(fontSize * 2.8);
+        var cssH = Math.ceil(fontSize * 1.35);
+
+        canvas.width = cssW * dpr;
+        canvas.height = cssH * dpr;
+        canvas.style.width = cssW + 'px';
+        canvas.style.height = cssH + 'px';
+
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.scale(dpr, dpr);
+
+        size = { w: cssW, h: cssH, fontSize: fontSize, dpr: dpr };
+
+        offscreenCanvas = document.createElement('canvas');
+        offscreenCanvas.width = canvas.width;
+        offscreenCanvas.height = canvas.height;
+        var offCtx = offscreenCanvas.getContext('2d');
+        offCtx.scale(dpr, dpr);
+        offCtx.fillStyle = '#FFFFFF';
+        offCtx.font = '800 ' + fontSize + 'px Inter, -apple-system, sans-serif';
+        offCtx.textAlign = 'center';
+        offCtx.textBaseline = 'middle';
+        offCtx.fillText(TEXT, cssW / 2, cssH / 2);
+
+        generateTriangles();
+    }
+
+    function generateTriangles() {
+        triangles = [];
+        var w = size.w, h = size.h;
+        var cellW = w / COLS;
+        var cellH = h / ROWS;
+
+        for (var row = 0; row < ROWS; row++) {
+            for (var col = 0; col < COLS; col++) {
+                var x = col * cellW;
+                var y = row * cellH;
+                var flip = (row + col) % 2 === 0;
+
+                var t1 = flip
+                    ? [[x, y], [x + cellW, y], [x + cellW, y + cellH]]
+                    : [[x, y], [x + cellW, y + cellH], [x, y + cellH]];
+                var t2 = flip
+                    ? [[x, y], [x + cellW, y + cellH], [x, y + cellH]]
+                    : [[x, y], [x + cellW, y], [x + cellW, y + cellH]];
+
+                [t1, t2].forEach(function(verts) {
+                    var ox = (Math.random() - 0.5) * w * 2;
+                    var oy = (Math.random() - 0.5) * h * 2;
+                    triangles.push({ verts: verts, ox: ox, oy: oy, gx: 0, ge: 0 });
+                });
+            }
+        }
+
+        triangles.sort(function() { return Math.random() - 0.5; });
+        triangles = triangles.slice(0, 38 + Math.floor(Math.random() * 12));
+    }
+
+    function draw(now) {
+        if (!startTime) startTime = now;
+        var elapsed = now - startTime;
+        ctx.clearRect(0, 0, size.w, size.h);
+
+        if (!assembled) {
+            var t = Math.min(elapsed / DURATION, 1);
+
+            if (t >= 1) {
+                ctx.drawImage(offscreenCanvas, 0, 0);
+                assembled = true;
+                nextGlitchTime = now + 200 + Math.random() * 400;
+                startSerial();
+            } else {
+                var ease = 1 - Math.pow(1 - t, 3);
+
+            for (var i = 0; i < triangles.length; i++) {
+                var tri = triangles[i];
+                var dx = tri.ox * (1 - ease);
+                var dy = tri.oy * (1 - ease);
+                ctx.save();
+                ctx.beginPath();
+                ctx.moveTo(tri.verts[0][0] + dx, tri.verts[0][1] + dy);
+                ctx.lineTo(tri.verts[1][0] + dx, tri.verts[1][1] + dy);
+                ctx.lineTo(tri.verts[2][0] + dx, tri.verts[2][1] + dy);
+                ctx.closePath();
+                ctx.clip();
+                ctx.drawImage(offscreenCanvas, 0, 0);
+                ctx.restore();
+            }
+            if (t >= 0.7) {
+                ctx.globalAlpha = (t - 0.7) / 0.3;
+                ctx.drawImage(offscreenCanvas, 0, 0);
+                ctx.globalAlpha = 1;
+            }
+            }
+        } else {
+            ctx.drawImage(offscreenCanvas, 0, 0);
+
+            if (now >= nextGlitchTime) {
+                var count = 1 + Math.floor(Math.random() * 3);
+                var dur = 80 + Math.random() * 120;
+                var picks = [];
+                var used = {};
+                while (picks.length < count) {
+                    var idx = Math.floor(Math.random() * triangles.length);
+                    if (!used[idx]) { used[idx] = true; picks.push(idx); }
+                }
+                for (var j = 0; j < picks.length; j++) {
+                    var pt = triangles[picks[j]];
+                    pt.gx = (Math.random() - 0.5) * 8;
+                    pt.ge = now + dur;
+                }
+                nextGlitchTime = now + 300 + Math.random() * 500;
+            }
+
+            for (var k = 0; k < triangles.length; k++) {
+                var gt = triangles[k];
+                if (now < gt.ge && gt.gx !== 0) {
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.moveTo(gt.verts[0][0] + gt.gx, gt.verts[0][1]);
+                    ctx.lineTo(gt.verts[1][0] + gt.gx, gt.verts[1][1]);
+                    ctx.lineTo(gt.verts[2][0] + gt.gx, gt.verts[2][1]);
+                    ctx.closePath();
+                    ctx.clip();
+                    ctx.drawImage(offscreenCanvas, 0, 0);
+                    ctx.restore();
+                } else if (now >= gt.ge) {
+                    gt.gx = 0;
+                }
+            }
+        }
+
+        animId = requestAnimationFrame(draw);
+    }
+
+    function revealLine2(onComplete) {
+        var line2 = document.getElementById('hero-line2');
+        if (!line2) { if (onComplete) onComplete(); return; }
+        line2.classList.add('reveal');
+        if (onComplete) setTimeout(onComplete, 3000);
+    }
+
+    function startSerial() {
+        if (serialStarted) return;
+        serialStarted = true;
+        revealLine2(function() {
+            showSubtitle(function() {
+                showButtons();
+            });
+        });
+    }
+
+    function showSubtitle(onComplete) {
+        var subtitle = document.getElementById('hero-subtitle');
+        if (subtitle) {
+            subtitle.classList.add('visible');
+            if (onComplete) setTimeout(onComplete, 1000);
+        } else if (onComplete) {
+            onComplete();
+        }
+    }
+
+    function showButtons() {
+        var actions = document.getElementById('hero-actions');
+        if (actions) actions.classList.add('visible');
+    }
+
+    function start() {
+        setup();
+        requestAnimationFrame(draw);
+    }
+
+    if (document.fonts && document.fonts.ready) {
+        document.fonts.ready.then(function() {
+            setTimeout(start, 100);
+        });
+    } else {
+        setTimeout(start, 300);
+    }
+
+    var resizeTimer;
+    window.addEventListener('resize', function() {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(function() {
+            if (animId) cancelAnimationFrame(animId);
+            assembled = false;
+            serialStarted = false;
+            startTime = null;
+            start();
+        }, 400);
+    });
+})();
+    </script>
+    <script>
+(function() {
+    var canvas = document.getElementById('bg-canvas');
+    if (!canvas) return;
+    var ctx = canvas.getContext('2d');
+    var FOCAL = 700;
+
+    function resize() {
+        var dpr = window.devicePixelRatio || 1;
+        canvas.width = window.innerWidth * dpr;
+        canvas.height = window.innerHeight * dpr;
+        canvas.style.width = window.innerWidth + 'px';
+        canvas.style.height = window.innerHeight + 'px';
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+    resize();
+    window.addEventListener('resize', resize);
+
+    var shapeDefs = {
+        cube: {
+            verts: [[-1,-1,-1],[1,-1,-1],[1,1,-1],[-1,1,-1],[-1,-1,1],[1,-1,1],[1,1,1],[-1,1,1]],
+            edges: [[0,1],[1,2],[2,3],[3,0],[4,5],[5,6],[6,7],[7,4],[0,4],[1,5],[2,6],[3,7]]
+        },
+        tetra: {
+            verts: [[1,1,1],[1,-1,-1],[-1,1,-1],[-1,-1,1]],
+            edges: [[0,1],[0,2],[0,3],[1,2],[1,3],[2,3]]
+        },
+        octa: {
+            verts: [[1,0,0],[-1,0,0],[0,1,0],[0,-1,0],[0,0,1],[0,0,-1]],
+            edges: [[0,2],[0,3],[0,4],[0,5],[1,2],[1,3],[1,4],[1,5],[2,4],[2,5],[3,4],[3,5]]
+        }
+    };
+
+    var types = ['cube','tetra','octa'];
+
+    function rand(min, max) { return min + Math.random() * (max - min); }
+
+    var instances = [];
+    var w = window.innerWidth, h = window.innerHeight;
+
+    for (var i = 0; i < 7; i++) {
+        var type = types[Math.floor(Math.random() * 3)];
+        instances.push({
+            type: type,
+            x: rand(w * 0.1, w * 0.9),
+            y: rand(h * 0.1, h * 0.9),
+            z: rand(200, 500),
+            rx: rand(0, Math.PI * 2),
+            ry: rand(0, Math.PI * 2),
+            rz: rand(0, Math.PI * 2),
+            rvx: rand(0.0005, 0.0025),
+            rvy: rand(0.0005, 0.0025),
+            rvz: rand(0.0003, 0.0015),
+            vx: rand(-0.15, 0.15),
+            vy: rand(-0.15, 0.15),
+            scale: rand(35, 90),
+            alpha: rand(0.08, 0.12)
+        });
+    }
+
+    function rotate(x, y, z, rx, ry, rz) {
+        var cosX = Math.cos(rx), sinX = Math.sin(rx);
+        var y1 = y * cosX - z * sinX;
+        var z1 = y * sinX + z * cosX;
+        var cosY = Math.cos(ry), sinY = Math.sin(ry);
+        var x2 = x * cosY + z1 * sinY;
+        var z2 = -x * sinY + z1 * cosY;
+        var cosZ = Math.cos(rz), sinZ = Math.sin(rz);
+        var x3 = x2 * cosZ - y1 * sinZ;
+        var y3 = x2 * sinZ + y1 * cosZ;
+        return [x3, y3, z2];
+    }
+
+    function project(x, y, z, cx, cy, s) {
+        var sc = FOCAL / (FOCAL + z);
+        return { x: cx + x * s * sc, y: cy + y * s * sc };
+    }
+
+    function draw() {
+        w = window.innerWidth; h = window.innerHeight;
+        ctx.clearRect(0, 0, w, h);
+
+        for (var i = 0; i < instances.length; i++) {
+            var ins = instances[i];
+            var def = shapeDefs[ins.type];
+
+            ins.rx += ins.rvx;
+            ins.ry += ins.rvy;
+            ins.rz += ins.rvz;
+            ins.x += ins.vx;
+            ins.y += ins.vy;
+
+            var margin = ins.scale * 1.5;
+            if (ins.x < margin || ins.x > w - margin) ins.vx *= -1;
+            if (ins.y < margin || ins.y > h - margin) ins.vy *= -1;
+            ins.x = Math.max(margin, Math.min(w - margin, ins.x));
+            ins.y = Math.max(margin, Math.min(h - margin, ins.y));
+
+            var proj = [];
+            for (var j = 0; j < def.verts.length; j++) {
+                var v = def.verts[j];
+                var r = rotate(v[0], v[1], v[2], ins.rx, ins.ry, ins.rz);
+                proj.push(project(r[0], r[1], r[2], ins.x, ins.y, ins.scale));
+            }
+
+            ctx.strokeStyle = 'rgba(255,255,255,' + ins.alpha + ')';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            for (var k = 0; k < def.edges.length; k++) {
+                var e = def.edges[k];
+                ctx.moveTo(proj[e[0]].x, proj[e[0]].y);
+                ctx.lineTo(proj[e[1]].x, proj[e[1]].y);
+            }
+            ctx.stroke();
+        }
+        requestAnimationFrame(draw);
+    }
+    draw();
+})();
+    </script>
+    <script>
+    // ===== 数据仪表盘 Chart.js (简化版：方向金额制) =====
+    (function() {
+        var INITIAL_CAPITAL = 20000;
+
+        function getTradeRecords() {
+            try {
+                var stored = localStorage.getItem('blog_trade_records');
+                return stored ? JSON.parse(stored) : [];
+            } catch(e) { return []; }
+        }
+
+        function computeDashboard(records) {
+            if (!records.length) return null;
+
+            // Sort records by date then group by code for FIFO pairing
+            var sorted = records.slice().sort(function(a, b) {
+                if (a.date < b.date) return -1;
+                if (a.date > b.date) return 1;
+                return 0;
+            });
+
+            // Separate buys and sells per code into FIFO queues
+            var buyQueues = {};  // code -> [ {date, amount, fee, type} ]
+            var sellQueues = {}; // code -> [ {date, amount, type} ]
+            var datesSet = {};
+            var totalFee = 0;
+            var allBuys = 0;
+            var isRepoCode = {};  // code -> boolean
+
+            sorted.forEach(function(r) {
+                var c = r.code || 'unknown';
+                datesSet[r.date] = true;
+                if (r.type === '逆回购买入' || r.type === '逆回购卖出') { isRepoCode[c] = true; }
+                if (r.type === '逆回购买入' || r.type === '股票买入') {
+                    if (!buyQueues[c]) buyQueues[c] = [];
+                    buyQueues[c].push({ date: r.date, amount: r.amount || 0, fee: r.fee || 0, type: r.type });
+                    totalFee += (r.fee || 0);
+                    allBuys += (r.amount || 0);
+                } else {
+                    if (!sellQueues[c]) sellQueues[c] = [];
+                    sellQueues[c].push({ date: r.date, amount: r.amount || 0, type: r.type });
+                }
+            });
+
+            // FIFO pairing: match earliest buy with earliest sell for each code
+            var totalNet = 0, totalRepoNet = 0, totalStockProfit = 0, totalStockLoss = 0;
+            var stockNetMap = {};  // code -> cumulative net (for winRate/pnlRatio)
+            var dailyNet = {};
+
+            var codesAll = Object.keys(buyQueues);
+            Object.keys(sellQueues).forEach(function(c) {
+                if (codesAll.indexOf(c) === -1) codesAll.push(c);
+            });
+
+            codesAll.forEach(function(c) {
+                var buys = buyQueues[c] || [];
+                var sells = sellQueues[c] || [];
+                var bi = 0, si = 0;
+                var codeNet = 0;
+
+                while (bi < buys.length && si < sells.length) {
+                    var buy = buys[bi];
+                    var sell = sells[si];
+                    // Pair this buy with this sell
+                    var net = sell.amount - buy.amount - buy.fee;
+                    totalNet += net;
+                    codeNet += net;
+
+                    // Record daily net on the sell date (when profit is realized)
+                    var pairDate = sell.date;
+                    if (!dailyNet[pairDate]) dailyNet[pairDate] = 0;
+                    dailyNet[pairDate] += net;
+
+                    bi++; si++;
+                }
+
+                if (isRepoCode[c]) {
+                    totalRepoNet += codeNet;
+                } else if (codeNet !== 0) {
+                    stockNetMap[c] = codeNet;
+                    if (codeNet > 0) { totalStockProfit += codeNet; }
+                    else { totalStockLoss += Math.abs(codeNet); }
+                }
+            });
+
+            // Stock-only metrics
+            var stockCodes = Object.keys(stockNetMap);
+            var stockWinCount = 0;
+            stockCodes.forEach(function(c) {
+                if (stockNetMap[c] > 0) stockWinCount++;
+            });
+
+            // Win/Loss for PnL ratio
+            var wSum = 0, lSum = 0;
+            stockCodes.forEach(function(c) {
+                var n = stockNetMap[c];
+                if (n > 0) wSum += n; else lSum += Math.abs(n);
+            });
+
+            // Daily cumulative (only paired profits, summed by date)
+            var sortedDates = Object.keys(datesSet).sort();
+            var cumulative = 0;
+            var dailyCumulative = [];
+            sortedDates.forEach(function(d) {
+                cumulative += (dailyNet[d] || 0);
+                dailyCumulative.push({ date: d.slice(5), val: cumulative });
+            });
+
+            var START_DATE = new Date('2026-08-01');
+            var today = new Date();
+            var dateDiff = Math.floor((today.getTime() - START_DATE.getTime()) / 86400000) + 1;
+
+            var returnRate = totalNet / INITIAL_CAPITAL * 100;
+            var feeRate = allBuys > 0 ? totalFee / allBuys * 100 : 0;
+            var winRate = stockCodes.length > 0 ? stockWinCount / stockCodes.length * 100 : 0;
+            var pnlRatio = lSum > 0 ? wSum / lSum : 0;
+            var stockTradeCount = records.filter(function(r) { return r.type === '股票买入' || r.type === '股票卖出'; }).length;
+            var frequency = dateDiff > 0 ? stockTradeCount / dateDiff : 0;
+
+            var peakVal = INITIAL_CAPITAL, maxDrawdown = 0;
+            dailyCumulative.forEach(function(d) {
+                var asset = INITIAL_CAPITAL + d.val;
+                if (asset > peakVal) peakVal = asset;
+                var dd = (peakVal - asset) / peakVal * 100;
+                if (dd > maxDrawdown) maxDrawdown = dd;
+            });
+
+            return {
+                totalNet: totalNet, returnRate: returnRate, feeRate: feeRate,
+                totalRepoNet: totalRepoNet, totalStockProfit: totalStockProfit, totalStockLoss: totalStockLoss,
+                totalFee: totalFee, maxDrawdown: maxDrawdown, winRate: winRate,
+                frequency: frequency, pnlRatio: pnlRatio, dateDiff: dateDiff,
+                totalAsset: INITIAL_CAPITAL + totalNet,
+                dailyCumulative: dailyCumulative
+            };
+        }
+
+        function formatCurrency(v) { return '¥' + v.toFixed(2); }
+        function formatPct(v) { return v.toFixed(v < 0.1 ? 3 : 2) + '%'; }
+
+        function updateMetrics(d) {
+            var el;
+            if (d) {
+                setText('metric-return-rate', formatPct(d.returnRate));
+                setText('metric-net-pnl', formatCurrency(d.totalNet));
+                el = document.getElementById('metric-net-pnl');
+                if (el) { el.className = 'metric-value' + (d.totalNet >= 0 ? ' metric-value-red' : ' metric-value-green'); }
+                setText('metric-total-asset', formatCurrency(d.totalAsset));
+                setText('metric-max-drawdown', formatPct(d.maxDrawdown));
+                el = document.getElementById('metric-max-drawdown');
+                if (el) { el.className = 'metric-value' + (d.maxDrawdown > 0 ? ' metric-value-red' : ' metric-value-green'); }
+                setText('metric-fee-rate', formatPct(d.feeRate));
+                setText('metric-days', d.dateDiff + '天');
+                setText('metric-sub-annual', '5日年化 ' + (d.dateDiff > 0 ? (d.returnRate / d.dateDiff * 365).toFixed(2) : '--') + '%');
+                setText('metric-win-rate', formatPct(d.winRate));
+                el = document.getElementById('metric-win-rate'); if (el) { el.className = 'metric-value' + (d.winRate === 100 ? ' metric-value-red' : ''); }
+                setText('metric-frequency', d.frequency.toFixed(2) + '笔/天');
+                el = document.getElementById('metric-frequency');
+                if (el) { el.className = 'metric-value'; }
+                if (d.pnlRatio > 0) {
+                    setText('metric-pnl-ratio', d.pnlRatio.toFixed(2));
+                    el = document.getElementById('metric-pnl-ratio'); if (el) { el.className = 'metric-value'; }
+                } else {
+                    setText('metric-pnl-ratio', 'N/A');
+                    el = document.getElementById('metric-pnl-ratio'); if (el) { el.className = 'metric-value metric-value-na'; }
+                }
+            } else {
+                var placeholders = {
+                    'metric-return-rate': '--', 'metric-net-pnl': '¥--', 'metric-total-asset': '¥--',
+                    'metric-max-drawdown': '--', 'metric-fee-rate': '--', 'metric-days': '--',
+                    'metric-win-rate': 'N/A', 'metric-frequency': 'N/A', 'metric-pnl-ratio': 'N/A'
+                };
+                Object.keys(placeholders).forEach(function(id) { setText(id, placeholders[id]); });
+            }
+        }
+
+        function setText(id, text) {
+            var el = document.getElementById(id);
+            if (el) el.textContent = text;
+        }
+
+        function drawProfitCurve(d) {
+            var canvas = document.getElementById('profit-curve-canvas');
+            if (!canvas) return;
+            var wrap = canvas.parentElement;
+            var w = wrap.clientWidth || 640;
+            var h = 240;
+            var dpr = window.devicePixelRatio || 1;
+            canvas.width = w * dpr;
+            canvas.height = h * dpr;
+            canvas.style.width = w + 'px';
+            canvas.style.height = h + 'px';
+            var ctx = canvas.getContext('2d');
+            ctx.scale(dpr, dpr);
+
+            var margin = { top: 24, right: 20, bottom: 36, left: 56 };
+            var pw = w - margin.left - margin.right;
+            var ph = h - margin.top - margin.bottom;
+
+            if (!d || !d.dailyCumulative.length) {
+                ctx.fillStyle = '#666666';
+                ctx.font = '14px Inter, sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText('暂无交易数据', w/2, h/2);
+                return;
+            }
+
+            var vals = d.dailyCumulative;
+            var yMax = Math.max(Math.abs(vals[vals.length-1].val) * 1.3, 0.5);
+            var yMin = vals.some(function(v) { return v.val < 0; }) ? -yMax : 0;
+
+            function xPos(i) { return margin.left + (i / Math.max(vals.length - 1, 1)) * pw; }
+            function yPos(v) { return margin.top + ph - ((v - yMin) / (yMax - yMin)) * ph; }
+
+            var grad = ctx.createLinearGradient(0, yPos(yMin), 0, yPos(yMax));
+            grad.addColorStop(0, 'rgba(255,255,255,0)');
+            grad.addColorStop(1, 'rgba(255,255,255,0.06)');
+
+            ctx.beginPath();
+            ctx.moveTo(xPos(0), yPos(yMin));
+            for (var i = 0; i < vals.length; i++) {
+                ctx.lineTo(xPos(i), yPos(vals[i].val));
+            }
+            ctx.lineTo(xPos(vals.length - 1), yPos(yMin));
+            ctx.closePath();
+            ctx.fillStyle = grad;
+            ctx.fill();
+
+            ctx.beginPath();
+            ctx.moveTo(xPos(0), yPos(vals[0].val));
+            for (var i = 1; i < vals.length; i++) {
+                ctx.lineTo(xPos(i), yPos(vals[i-1].val));
+                ctx.lineTo(xPos(i), yPos(vals[i].val));
+            }
+            ctx.strokeStyle = '#FFFFFF';
+            ctx.lineWidth = 2.5;
+            ctx.lineJoin = 'round';
+            ctx.stroke();
+
+            for (var i = 0; i < vals.length; i++) {
+                ctx.beginPath();
+                ctx.arc(xPos(i), yPos(vals[i].val), 3.5, 0, Math.PI * 2);
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fill();
+            }
+
+            ctx.fillStyle = '#666666';
+            ctx.font = '11px Inter, sans-serif';
+            ctx.textAlign = 'right';
+            var yStep = (yMax - yMin) / 4;
+            for (var j = 0; j <= 4; j++) {
+                var yv = yMin + yStep * j;
+                var y = yPos(yv);
+                ctx.fillText('¥' + yv.toFixed(1), margin.left - 8, y + 4);
+                ctx.beginPath();
+                ctx.moveTo(margin.left, y);
+                ctx.lineTo(margin.left + pw, y);
+                ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+                ctx.lineWidth = 0.5;
+                ctx.stroke();
+            }
+
+            ctx.textAlign = 'center';
+            var step = Math.max(1, Math.floor(vals.length / 5));
+            for (var k = 0; k < vals.length; k += step) {
+                ctx.fillText(vals[k].date, xPos(k), h - margin.bottom + 18);
+            }
+            if (vals.length > 1 && (vals.length - 1) % step !== 0) {
+                ctx.fillText(vals[vals.length-1].date, xPos(vals.length-1), h - margin.bottom + 18);
+            }
+        }
+
+        function drawRadar(d) {
+            var canvas = document.getElementById('radar-canvas');
+            if (!canvas) return;
+            var wrap = canvas.parentElement;
+            var wrapW = wrap.clientWidth || 640;
+            var w = Math.min(wrapW, 420);
+            var h = 340;
+            var dpr = window.devicePixelRatio || 1;
+            canvas.width = w * dpr;
+            canvas.height = h * dpr;
+            canvas.style.width = w + 'px';
+            canvas.style.height = h + 'px';
+            var ctx = canvas.getContext('2d');
+            ctx.scale(dpr, dpr);
+
+            var cx = w / 2, cy = h / 2, r = 110;
+            var labels = ['胜率', '频率', '盈亏比'];
+            var angles = [-Math.PI / 2, Math.PI / 6, 5 * Math.PI / 6];
+
+            for (var ring = 0; ring < 4; ring++) {
+                ctx.beginPath();
+                for (var i = 0; i <= 3; i++) {
+                    var ar = angles[i % 3];
+                    var rr = r * (ring + 1) / 4;
+                    var px = cx + rr * Math.cos(ar);
+                    var py = cy + rr * Math.sin(ar);
+                    if (i === 0) ctx.moveTo(px, py);
+                    else ctx.lineTo(px, py);
+                }
+                ctx.closePath();
+                ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+                ctx.lineWidth = 0.5;
+                ctx.stroke();
+            }
+
+            for (var i = 0; i < 3; i++) {
+                ctx.beginPath();
+                ctx.moveTo(cx, cy);
+                ctx.lineTo(cx + r * Math.cos(angles[i]), cy + r * Math.sin(angles[i]));
+                ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+                ctx.lineWidth = 0.5;
+                ctx.stroke();
+
+                var lx = cx + (r + 45) * Math.cos(angles[i]);
+                var ly = cy + (r + 45) * Math.sin(angles[i]);
+                ctx.fillStyle = '#888888';
+                ctx.font = '13px Inter, sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(labels[i], lx, ly);
+            }
+
+            if (!d || d.winRate === 0 && d.frequency === 0 && d.pnlRatio === 0) {
+                ctx.beginPath();
+                ctx.arc(cx, cy, 8, 0, Math.PI * 2);
+                ctx.fillStyle = '#888888';
+                ctx.fill();
+                ctx.fillStyle = '#666666';
+                ctx.font = '15px Inter, sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText('全维度 N/A', cx, cy + 26);
+                return;
+            }
+
+            var maxFreq = Math.max(d.frequency, 1);
+            var maxPnl = Math.max(d.pnlRatio, 1);
+            var vals = [d.winRate / 100, Math.min(d.frequency / maxFreq, 1), Math.min(d.pnlRatio / maxPnl, 1)];
+
+            ctx.beginPath();
+            for (var i = 0; i < 3; i++) {
+                var vx = cx + r * vals[i] * Math.cos(angles[i]);
+                var vy = cy + r * vals[i] * Math.sin(angles[i]);
+                if (i === 0) ctx.moveTo(vx, vy);
+                else ctx.lineTo(vx, vy);
+            }
+            ctx.closePath();
+            ctx.fillStyle = 'rgba(255,255,255,0.08)';
+            ctx.fill();
+            ctx.strokeStyle = '#FFFFFF';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+
+            for (var i = 0; i < 3; i++) {
+                var dx = cx + r * vals[i] * Math.cos(angles[i]);
+                var dy = cy + r * vals[i] * Math.sin(angles[i]);
+                ctx.beginPath();
+                ctx.arc(dx, dy, 4, 0, Math.PI * 2);
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fill();
+            }
+        }
+
+        function drawDonut(d) {
+            var canvas = document.getElementById('donut-canvas');
+            if (!canvas) return;
+            var wrap = canvas.parentElement;
+            var w = wrap.clientWidth || 640;
+            var h = 280;
+            var dpr = window.devicePixelRatio || 1;
+            canvas.width = w * dpr;
+            canvas.height = h * dpr;
+            canvas.style.width = w + 'px';
+            canvas.style.height = h + 'px';
+            var ctx = canvas.getContext('2d');
+            ctx.scale(dpr, dpr);
+
+            var cx = w / 2, cy = 120;
+            var outerR = 85, innerR = 70;
+
+            var fee = d ? d.totalFee : 0;
+            var repoNet = d ? d.totalRepoNet : 0;
+            var stockWin = d ? d.totalStockProfit : 0;
+            var stockLoss = d ? d.totalStockLoss : 0;
+
+            var segments = [
+                { label: '手续费', color: '#A8D8A8', val: fee },
+                { label: '逆回购盈亏', color: '#EF9A9A', val: Math.abs(repoNet) },
+                { label: '股票盈利', color: '#C62828', val: stockWin },
+                { label: '股票亏损', color: '#2E7D32', val: stockLoss }
+            ];
+            var total = segments.reduce(function(s, seg) { return s + seg.val; }, 0);
+            if (total === 0) total = 1;
+
+            var startAngle = -Math.PI / 2;
+            for (var i = 0; i < segments.length; i++) {
+                var slice = (segments[i].val / total) * Math.PI * 2;
+                if (slice < 0.02) slice = 0.02;
+
+                ctx.beginPath();
+                ctx.arc(cx, cy, outerR, startAngle, startAngle + slice);
+                ctx.arc(cx, cy, innerR, startAngle + slice, startAngle, true);
+                ctx.closePath();
+                ctx.fillStyle = segments[i].color;
+                ctx.fill();
+
+                startAngle += slice;
+            }
+        }
+
+        function refreshDashboard() {
+            var records = getTradeRecords();
+            var d = computeDashboard(records);
+            updateMetrics(d);
+            drawProfitCurve(d);
+            drawRadar(d);
+            drawDonut(d);
+        }
+
+        window.drawAllCharts = refreshDashboard;
+        window.refreshDashboard = refreshDashboard;
+        refreshDashboard();
+        window.addEventListener('resize', refreshDashboard);
+    })();
+    </script>
+
+    <!-- 登录覆盖层 -->
+    <div class="login-overlay" id="login-overlay" style="display:none;">
+        <div class="login-box">
+            <h2 class="login-title">管理后台</h2>
+            <input type="text" class="login-input" id="login-username" placeholder="账号" autocomplete="off">
+            <input type="password" class="login-input" id="login-password" placeholder="密码" autocomplete="off">
+            <p class="login-error" id="login-error" style="display:none;"></p>
+            <button class="login-btn" id="login-submit">登录</button>
+        </div>
+    </div>
+    <!-- 修改密码弹窗 -->
+    <div class="pwd-modal-overlay" id="pwd-modal-overlay" style="display:none;">
+        <div class="pwd-modal-box">
+            <h2 class="login-title">修改密码</h2>
+            <input type="password" class="login-input" id="pwd-old" placeholder="当前密码" autocomplete="off">
+            <input type="password" class="login-input" id="pwd-new" placeholder="新密码" autocomplete="off">
+            <input type="password" class="login-input" id="pwd-confirm" placeholder="确认新密码" autocomplete="off">
+            <p class="login-error" id="pwd-error" style="display:none;"></p>
+            <div style="display:flex;gap:12px;">
+                <button class="login-btn" id="pwd-submit" style="flex:1;">确认修改</button>
+                <button class="login-btn login-btn-cancel" id="pwd-cancel" style="flex:1;">取消</button>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
