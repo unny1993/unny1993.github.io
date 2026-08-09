@@ -870,7 +870,7 @@
             var ctx = canvas.getContext('2d');
             ctx.scale(dpr, dpr);
 
-            var margin = { top: 24, right: 20, bottom: 36, left: 56 };
+            var margin = { top: 24, right: isMobile ? 12 : 20, bottom: isMobile ? 28 : 36, left: isMobile ? 40 : 56 };
             var pw = w - margin.left - margin.right;
             var ph = h - margin.top - margin.bottom;
 
@@ -922,7 +922,7 @@
             }
 
             ctx.fillStyle = '#666666';
-            ctx.font = '11px Inter, sans-serif';
+            ctx.font = (isMobile ? '10px' : '11px') + ' Inter, sans-serif';
             ctx.textAlign = 'right';
             var yStep = (yMax - yMin) / 4;
             for (var j = 0; j <= 4; j++) {
@@ -937,6 +937,8 @@
                 ctx.stroke();
             }
 
+            ctx.fillStyle = '#666666';
+            ctx.font = (isMobile ? '10px' : '11px') + ' Inter, sans-serif';
             ctx.textAlign = 'center';
             var step = Math.max(1, Math.floor(vals.length / 5));
             for (var k = 0; k < vals.length; k += step) {
