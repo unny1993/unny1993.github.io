@@ -323,6 +323,12 @@
         canvas.style.display = 'none';
         var glitchText = document.getElementById('hero-glitch-text');
         if (glitchText) glitchText.style.display = 'block';
+        var line2 = document.getElementById('hero-line2');
+        if (line2) { line2.style.opacity = '1'; line2.style.clipPath = 'inset(0 0 0 0)'; }
+        var subtitle = document.getElementById('hero-subtitle');
+        if (subtitle) { subtitle.style.opacity = '1'; }
+        var actions = document.getElementById('hero-actions');
+        if (actions) { actions.style.opacity = '1'; }
         return;
     }
     var animSheet = document.createElement('style');
