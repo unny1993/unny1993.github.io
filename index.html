@@ -337,7 +337,10 @@
     var serialStarted = false;
 
     function getFontSize() {
-        return Math.max(48, Math.min(72, window.innerWidth * 0.06));
+        var isMobile = window.innerWidth <= 768;
+        var factor = isMobile ? 0.045 : 0.06;
+        var maxSize = isMobile ? 40 : 72;
+        return Math.max(36, Math.min(maxSize, window.innerWidth * factor));
     }
 
     function setup() {
