@@ -859,8 +859,9 @@
             var canvas = document.getElementById('profit-curve-canvas');
             if (!canvas) return;
             var wrap = canvas.parentElement;
-            var w = wrap.clientWidth || 640;
-            var h = 240;
+            var isMobile = window.innerWidth <= 768;
+            var w = Math.min(wrap.clientWidth || (isMobile ? 320 : 640), isMobile ? 600 : 9999);
+            var h = isMobile ? 200 : 500;
             var dpr = window.devicePixelRatio || 1;
             canvas.width = w * dpr;
             canvas.height = h * dpr;
@@ -950,9 +951,10 @@
             var canvas = document.getElementById('radar-canvas');
             if (!canvas) return;
             var wrap = canvas.parentElement;
-            var wrapW = wrap.clientWidth || 640;
-            var w = Math.min(wrapW, 420);
-            var h = 340;
+            var isMobile = window.innerWidth <= 768;
+            var wrapW = wrap.clientWidth || (isMobile ? 320 : 640);
+            var w = isMobile ? 250 : Math.min(wrapW, 350);
+            var h = isMobile ? 250 : 350;
             var dpr = window.devicePixelRatio || 1;
             canvas.width = w * dpr;
             canvas.height = h * dpr;
@@ -961,7 +963,7 @@
             var ctx = canvas.getContext('2d');
             ctx.scale(dpr, dpr);
 
-            var cx = w / 2, cy = h / 2, r = 110;
+            var cx = w / 2, cy = h / 2, r = isMobile ? 80 : 110;
             var labels = ['胜率', '频率', '盈亏比'];
             var angles = [-Math.PI / 2, Math.PI / 6, 5 * Math.PI / 6];
 
@@ -989,10 +991,10 @@
                 ctx.lineWidth = 0.5;
                 ctx.stroke();
 
-                var lx = cx + (r + 45) * Math.cos(angles[i]);
-                var ly = cy + (r + 45) * Math.sin(angles[i]);
+                var lx = cx + (r + (isMobile ? 30 : 45)) * Math.cos(angles[i]);
+                var ly = cy + (r + (isMobile ? 30 : 45)) * Math.sin(angles[i]);
                 ctx.fillStyle = '#888888';
-                ctx.font = '13px Inter, sans-serif';
+                ctx.font = (isMobile ? '10px' : '13px') + ' Inter, sans-serif';
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
                 ctx.fillText(labels[i], lx, ly);
@@ -1004,7 +1006,7 @@
                 ctx.fillStyle = '#888888';
                 ctx.fill();
                 ctx.fillStyle = '#666666';
-                ctx.font = '15px Inter, sans-serif';
+                ctx.font = (isMobile ? '12px' : '15px') + ' Inter, sans-serif';
                 ctx.textAlign = 'center';
                 ctx.fillText('全维度 N/A', cx, cy + 26);
                 return;
@@ -1042,8 +1044,9 @@
             var canvas = document.getElementById('donut-canvas');
             if (!canvas) return;
             var wrap = canvas.parentElement;
-            var w = wrap.clientWidth || 640;
-            var h = 280;
+            var isMobile = window.innerWidth <= 768;
+            var w = isMobile ? 220 : 280;
+            var h = isMobile ? 220 : 280;
             var dpr = window.devicePixelRatio || 1;
             canvas.width = w * dpr;
             canvas.height = h * dpr;
@@ -1052,8 +1055,8 @@
             var ctx = canvas.getContext('2d');
             ctx.scale(dpr, dpr);
 
-            var cx = w / 2, cy = 120;
-            var outerR = 85, innerR = 70;
+            var cx = w / 2, cy = isMobile ? 94 : 120;
+            var outerR = isMobile ? 67 : 85, innerR = isMobile ? 55 : 70;
 
             var fee = d ? d.totalFee : 0;
             var repoNet = d ? d.totalRepoNet : 0;
