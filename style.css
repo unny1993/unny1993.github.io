@@ -1163,13 +1163,140 @@ a { color: inherit; text-decoration: none; }
 
 /* ===== Responsive ===== */
 @media (max-width: 768px) {
-    .hero { min-height: calc(100vh - 64px); padding: 48px 0; }
-    .hero-line2 { font-size: clamp(36px, 10vw, 48px); }
-    .hero-subtitle { font-size: 16px; }
-    .post-card-title { font-size: 20px; }
-    .article-detail h1 { font-size: clamp(28px, 8vw, 40px); }
-    .gallery-grid { grid-template-columns: repeat(2, 1fr); }
-    .moment-item { flex-direction: column; gap: 4px; }
+    /* ---- Header ---- */
+    .site-header { height: 56px; }
+    .header-inner { padding: 0 16px; }
+    .logo { font-size: 16px; }
+    .header-inner nav { gap: 10px; margin-right: 10px; }
+    .nav-link { font-size: 13px; }
+    .header-search-input {
+        width: 120px;
+        font-size: 12px;
+        padding: 7px 10px 7px 28px;
+    }
+    .header-search-input:focus { width: 160px; }
+    .header-search::before { left: 8px; width: 12px; height: 12px; }
+    .header-search::after { left: 18px; top: calc(50% + 4px); width: 4px; }
+
+    /* ---- Main ---- */
+    .site-main { padding: 0 16px; }
+
+    /* ---- Sections ---- */
+    .section { padding-bottom: 80px; }
+    .section-top { padding-top: 80px; }
+    .section-label {
+        font-size: 11px;
+        margin-bottom: 24px;
+        letter-spacing: 0.06em;
+    }
+
+    /* ---- Hero ---- */
+    .hero { min-height: calc(100vh - 56px); padding: 56px 0; }
+    .hero-line2 { font-size: clamp(32px, 10vw, 48px); }
+    .hero-subtitle { font-size: 15px; margin-bottom: 36px; max-width: 100%; }
+    .hero-actions { gap: 12px; }
+    .hero-canvas { max-width: 100%; }
+
+    /* ---- Buttons ---- */
+    .btn { padding: 10px 16px; font-size: 14px; }
+
+    /* ---- Post Feed ---- */
+    .post-card { padding-bottom: 32px; margin-bottom: 32px; }
+    .post-card-title { font-size: 18px; }
+    .post-card-excerpt { font-size: 14px; }
+    .post-card-header { gap: 12px; flex-wrap: wrap; }
+    .post-card-compact { gap: 12px; }
+    .post-card-compact .post-card-title { font-size: 15px; }
+
+    /* ---- Article Detail ---- */
+    .article-detail { padding-top: 64px; padding-bottom: 80px; }
+    .article-detail h1 { font-size: clamp(24px, 8vw, 36px); }
+    .article-meta { flex-wrap: wrap; gap: 10px; margin-bottom: 40px; padding-bottom: 24px; }
+    .article-body { font-size: 15px; }
+    .article-body h2 { font-size: 22px; margin-top: 40px; }
+    .article-body h3 { font-size: 18px; margin-top: 28px; }
+    .article-body pre { padding: 16px; }
+    .back-btn { margin-bottom: 32px; }
+
+    /* ---- Gallery ---- */
+    .gallery-grid { grid-template-columns: repeat(2, 1fr); gap: 4px; }
+    .gallery-title { font-size: 12px; bottom: 8px; left: 8px; right: 8px; }
+
+    /* ---- Moments ---- */
+    .moment-item { flex-direction: column; gap: 2px; padding: 24px 0; }
+    .moment-date { min-width: 0; }
+    .moment-content { font-size: 15px; }
+
+    /* ---- Collections ---- */
+    .collections-list { gap: 40px; }
+    .collection-group { padding-bottom: 32px; }
+    .collection-name { font-size: 18px; margin-bottom: 16px; }
+
+    /* ---- Data Dashboard ---- */
+    .metrics-grid { grid-template-columns: repeat(2, 1fr); gap: 0 16px; margin-bottom: 40px; }
+    .metric-card { padding: 24px 0; }
+    .metric-value { font-size: 24px; }
+    .metric-value-na { font-size: 18px; }
+    .metric-title { font-size: 12px; margin-bottom: 8px; }
+    .metric-sub { font-size: 11px; }
+    .charts-row { gap: 40px; }
+    .chart-card { padding-bottom: 24px; }
+    .chart-title { font-size: 14px; margin-bottom: 16px; }
+    .chart-card:nth-child(2) .chart-canvas-wrap canvas,
+    .chart-card:nth-child(3) .chart-canvas-wrap canvas { max-width: 100%; }
+    .chart-legend { gap: 12px; }
+
+    /* ---- Guestbook ---- */
+    .gb-message { padding: 24px 0; }
+    .gb-body { font-size: 14px; }
+    .gb-input, .gb-textarea { font-size: 14px; padding: 10px 14px; }
+
+    /* ---- About ---- */
+    .about-avatar { width: 96px; height: 96px; margin-bottom: 24px; }
+    .about-intro { font-size: 15px; margin-bottom: 36px; }
+    .about-positioning p { font-size: 14px; }
+    .timeline-list li { padding: 12px 0; gap: 12px; font-size: 13px; }
+    .timeline-date { min-width: 56px; }
+    .about-subtitle { font-size: 12px; letter-spacing: 1.5px; }
+
+    /* ---- Footer ---- */
+    .site-footer { padding: 40px 16px; }
+    .site-footer p { font-size: 12px; }
+
+    /* ---- Search Dropdown ---- */
+    .search-dropdown { width: calc(100vw - 32px); max-height: 360px; }
+
+    /* ---- Admin Panel ---- */
+    .admin-tabs { overflow-x: auto; -ms-overflow-style: none; scrollbar-width: none; }
+    .admin-tabs::-webkit-scrollbar { display: none; }
+    .admin-tab { padding: 10px 14px; font-size: 13px; white-space: nowrap; }
+    .admin-panel h3 { font-size: 15px; margin-top: 24px; }
+    .admin-form { gap: 10px; margin-bottom: 32px; padding-bottom: 32px; }
+    .admin-input,
+    .admin-select,
+    .admin-textarea { width: 100%; font-size: 14px; }
+    .admin-item { flex-wrap: wrap; gap: 12px; }
+    .admin-item-actions { margin-left: 0; }
+    .admin-btn-sm { padding: 6px 12px; font-size: 12px; }
+    .admin-item-title { font-size: 14px; }
+    .admin-item-meta { font-size: 12px; }
+    .admin-checklist { gap: 12px; }
+    .admin-checklist label { font-size: 13px; }
+
+    /* ---- Admin Trades Table ---- */
+    .admin-trades-table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .admin-trades-table th,
+    .admin-trades-table td { font-size: 13px; padding: 8px 10px; }
+    .admin-panel-trade-net { font-size: 14px; }
+
+    /* ---- Login Overlay ---- */
+    .login-box { gap: 12px; }
+    .login-title { font-size: 20px; }
+    .login-input { padding: 10px 12px; font-size: 13px; }
+    .login-btn { padding: 10px 14px; font-size: 13px; }
+
+    /* ---- Password Modal ---- */
+    .pwd-modal-box { gap: 12px; }
 }
 
 /* ===== Login Overlay ===== */
