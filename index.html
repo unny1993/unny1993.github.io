@@ -42,6 +42,7 @@
             <div class="hero">
                 <div class="hero-title-wrapper">
                     <canvas class="hero-canvas" id="hero-canvas"></canvas>
+                    <div class="hero-glitch-text" id="hero-glitch-text">致幻</div>
                     <div class="hero-canvas-overlay"></div>
                     <div class="hero-line2" id="hero-line2">来自普通人的梦呓</div>
                 </div>
@@ -318,6 +319,12 @@
 (function() {
     var canvas = document.getElementById('hero-canvas');
     if (!canvas) return;
+    if (window.innerWidth <= 768) {
+        canvas.style.display = 'none';
+        var glitchText = document.getElementById('hero-glitch-text');
+        if (glitchText) glitchText.style.display = 'block';
+        return;
+    }
     var animSheet = document.createElement('style');
     animSheet.textContent = '.hero-line2{clip-path:inset(0 100% 0 0);transition:clip-path 3s ease,opacity 3s ease}.hero-line2.reveal{clip-path:inset(0 0 0 0);opacity:1}';
     document.head.appendChild(animSheet);
