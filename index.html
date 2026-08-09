@@ -42,6 +42,7 @@
             <div class="hero">
                 <div class="hero-title-wrapper">
                     <canvas class="hero-canvas" id="hero-canvas"></canvas>
+                    <div class="hero-canvas-overlay"></div>
                     <div class="hero-line2" id="hero-line2">来自普通人的梦呓</div>
                 </div>
                 <p class="hero-subtitle" id="hero-subtitle">一个赌徒的自我修养。</p>
@@ -440,7 +441,8 @@
             ctx.drawImage(offscreenCanvas, 0, 0);
 
             if (now >= nextGlitchTime) {
-                var count = 1 + Math.floor(Math.random() * 3);
+                var isMobileGlitch = window.innerWidth <= 768;
+                var count = isMobileGlitch ? 1 : (1 + Math.floor(Math.random() * 3));
                 var dur = 80 + Math.random() * 120;
                 var picks = [];
                 var used = {};
@@ -450,7 +452,7 @@
                 }
                 for (var j = 0; j < picks.length; j++) {
                     var pt = triangles[picks[j]];
-                    pt.gx = (Math.random() - 0.5) * 8;
+                    pt.gx = (Math.random() - 0.5) * (isMobileGlitch ? 3 : 8);
                     pt.ge = now + dur;
                 }
                 nextGlitchTime = now + 300 + Math.random() * 500;
