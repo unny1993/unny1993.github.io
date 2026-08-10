@@ -92,15 +92,15 @@ function saveToStorage(key, data) {
 
 // ===== GitHub Token 管理 =====
 function getToken() {
-    return sessionStorage.getItem('gh_token') || '';
+    return localStorage.getItem('gh_token') || '';
 }
 
 function setToken(token) {
-    sessionStorage.setItem('gh_token', token);
+    localStorage.setItem('gh_token', token);
 }
 
 function clearToken() {
-    sessionStorage.removeItem('gh_token');
+    localStorage.removeItem('gh_token');
 }
 
 function showSyncError(msg) {
@@ -118,7 +118,7 @@ function showSyncError(msg) {
 }
 
 function hasToken() {
-    return !!sessionStorage.getItem('gh_token');
+    return !!localStorage.getItem('gh_token');
 }
 
 // ===== GitHub API 请求 =====
@@ -144,8 +144,13 @@ function ghApiRequest(endpoint, options) {
 
 // ===== 从 GitHub 拉取数据 =====
 function ghFetchByLabel(label) {
-    return ghApiRequest('/issues?labels=' + label + '&state=open&per_page=100').catch(function(err) {
-        console.error('GitHub API 错误:', err);
+    return fetch(GH_API_BASE + '/issues?labels=' + label + '&state=open&per_page=100', {
+        headers: { 'Accept': 'application/vnd.github.v3+json' }
+    }).then(function(res) {
+        if (!res.ok) throw new Error('GitHub API ' + res.status);
+        return res.json();
+    }).catch(function(err) {
+        console.error('GitHub Issues 读取失败，降级使用本地数据:', err);
         return null;
     });
 }
@@ -193,6 +198,30 @@ function ghLoadAllData() {
                     tradeRecords = r.data;
                     localStorage.setItem(key, JSON.stringify(tradeRecords));
                     changed = true;
+                }
+            } else {
+                // Issues 拉取为空/失败，降级使用 localStorage
+                var localFallback = localStorage.getItem(key);
+                if (localFallback) {
+                    try {
+                        var fb = JSON.parse(localFallback);
+                        if (key === 'blog_articles') {
+                            articles = fb;
+                            changed = true;
+                        } else if (key === 'blog_moments') {
+                            moments = fb;
+                            changed = true;
+                        } else if (key === 'blog_gallery') {
+                            galleryItems = fb;
+                            changed = true;
+                        } else if (key === 'blog_collections') {
+                            collections = fb;
+                            changed = true;
+                        } else if (key === 'blog_trade_records') {
+                            tradeRecords = fb;
+                            changed = true;
+                        }
+                    } catch(e) { /* skip corrupt */ }
                 }
             }
         }
