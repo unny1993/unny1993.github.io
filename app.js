@@ -82,7 +82,6 @@ function loadFromStorage(key, defaults) {
     if (stored) {
         try { return JSON.parse(stored); } catch (e) {}
     }
-    localStorage.setItem(key, JSON.stringify(defaults));
     return JSON.parse(JSON.stringify(defaults));
 }
 
@@ -191,25 +190,42 @@ function ghLoadAllData() {
             var key = GH_KEY_BY_LABEL[r.label];
             if (!key) continue;
             if (r.data.length > 0) {
-                // 合并检查：读取当前 localStorage，Issues 中存在但 localStorage 中不存在的条目跳过不写回
+                // 以 localStorage 为主，Issues 数据仅用于补充和回填 _ghIssueNumber
                 var localRaw = localStorage.getItem(key);
                 var localItems = localRaw ? (function(){ try { return JSON.parse(localRaw); } catch(e){ return []; } })() : [];
                 var idKey = (key === 'blog_articles' || key === 'blog_trade_records') ? 'id'
                            : (key === 'blog_moments') ? null
                            : (key === 'blog_gallery') ? 'title'
                            : (key === 'blog_collections') ? 'name' : 'id';
-                var merged = r.data.filter(function(issueItem) {
-                    if (localItems.length === 0) return true;
+                // 以 localStorage 为本体
+                var merged = localItems.slice();
+                for (var j = 0; j < r.data.length; j++) {
+                    var issueItem = r.data[j];
+                    var existingIdx = -1;
                     if (idKey === null) {
                         // moments: 用 date + content 匹配
-                        return localItems.some(function(l) {
-                            return l.date === issueItem.date && l.content === issueItem.content;
-                        });
+                        for (var k = 0; k < merged.length; k++) {
+                            if (merged[k].date === issueItem.date && merged[k].content === issueItem.content) {
+                                existingIdx = k; break;
+                            }
+                        }
+                    } else {
+                        for (var k = 0; k < merged.length; k++) {
+                            if (merged[k][idKey] === issueItem[idKey]) {
+                                existingIdx = k; break;
+                            }
+                        }
                     }
-                    return localItems.some(function(l) {
-                        return l[idKey] === issueItem[idKey];
-                    });
-                });
+                    if (existingIdx >= 0) {
+                        // 已在本地存在：回填 _ghIssueNumber
+                        if (!merged[existingIdx]._ghIssueNumber && issueItem._ghIssueNumber) {
+                            merged[existingIdx]._ghIssueNumber = issueItem._ghIssueNumber;
+                        }
+                    } else {
+                        // 本地不存在：来自其他设备的条目，合并进来
+                        merged.push(issueItem);
+                    }
+                }
                 if (key === 'blog_articles') {
                     articles = merged;
                     localStorage.setItem(key, JSON.stringify(merged));
