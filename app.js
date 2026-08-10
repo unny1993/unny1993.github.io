@@ -99,7 +99,7 @@ function loadCredentials() {
     if (stored) {
         try { return JSON.parse(stored); } catch (e) {}
     }
-    var defaults = { username: 'admin', password: 'admin123' };
+    var defaults = { username: 'admin', password: '753951' };
     localStorage.setItem('blog_admin_credentials', JSON.stringify(defaults));
     return JSON.parse(JSON.stringify(defaults));
 }
