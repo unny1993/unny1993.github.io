@@ -25,6 +25,10 @@ const DEFAULT_ARTICLES = [];
 const DEFAULT_MOMENTS = [
     {
         "date": "2026-08-10",
+        "content": "犹犹豫豫挂了-1bps，结果自己想太多。"
+    },
+    {
+        "date": "2026-08-10",
         "content": "最终还是放弃了线上修改并同步的路线，选择本地推送至仓库进行更新。"
     }
 ];
@@ -164,7 +168,7 @@ const DEFAULT_TRADE_RECORDS = [
 ];
 
 // ===== 数据版本控制 =====
-const DATA_VERSION = 3;
+const DATA_VERSION = 4;
 
 (function checkDataVersion() {
     var storedVer = localStorage.getItem('blog_data_version');
