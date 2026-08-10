@@ -39,12 +39,12 @@ const DEFAULT_MOMENTS = [
 ];
 
 const DEFAULT_GALLERY = [
-    { title: '东京街头', color: '#2d1b4e', url: '' },
-    { title: '日落海岸', color: '#1a3a4a', url: '' },
-    { title: '城市夜景', color: '#232038', url: '' },
-    { title: '秋叶小径', color: '#3d1f0f', url: '' },
-    { title: '雪山远眺', color: '#1e2e3d', url: '' },
-    { title: '咖啡馆一角', color: '#2a1f1a', url: '' },
+    { title: '东京街头', description: '', color: '#2d1b4e', url: '' },
+    { title: '日落海岸', description: '', color: '#1a3a4a', url: '' },
+    { title: '城市夜景', description: '', color: '#232038', url: '' },
+    { title: '秋叶小径', description: '', color: '#3d1f0f', url: '' },
+    { title: '雪山远眺', description: '', color: '#1e2e3d', url: '' },
+    { title: '咖啡馆一角', description: '', color: '#2a1f1a', url: '' },
 ];
 
 const DEFAULT_COLLECTIONS = [
@@ -300,8 +300,15 @@ function renderMoments() {
 function renderGallery() {
     var container = document.getElementById('gallery-grid');
     container.innerHTML = galleryItems.map(function(item) {
-        if (item.url) {
-            return '<div class="gallery-item"><img src="' + item.url + '" alt="' + item.title + '" loading="lazy"><div class="gallery-item-title">' + item.title + '</div></div>';
+        if (item.url && item.url.startsWith('data:')) {
+            return '<div class="gallery-item">' +
+                '<img src="' + item.url + '" alt="' + item.title + '" loading="lazy" class="gallery-img">' +
+                '<div class="gallery-overlay">' +
+                '<div class="gallery-item-title">' + item.title + '</div>' +
+                (item.description ? '<div class="gallery-item-desc">' + item.description + '</div>' : '') +
+                '</div></div>';
+        } else if (item.url) {
+            return '<div class="gallery-item"><img src="' + item.url + '" alt="' + item.title + '" loading="lazy" class="gallery-img"><div class="gallery-overlay"><div class="gallery-item-title">' + item.title + '</div></div></div>';
         } else {
             return '<div class="gallery-item" style="background:' + item.color + ';min-height:200px;"><div class="gallery-item-title">' + item.title + '</div></div>';
         }
@@ -488,10 +495,19 @@ document.getElementById('admin-moment-submit').addEventListener('click', functio
 function renderAdminGallery() {
     var list = document.getElementById('admin-gallery-list');
     list.innerHTML = galleryItems.map(function(item, i) {
+        var thumbHtml = '';
+        if (item.url) {
+            thumbHtml = '<img src="' + item.url + '" class="admin-gallery-thumb" alt="">';
+        } else {
+            thumbHtml = '<div class="admin-gallery-thumb" style="background:' + item.color + ';"></div>';
+        }
         return '<div class="admin-item">' +
-            '<div class="admin-item-info">' +
+            '<div class="admin-item-info admin-gallery-info">' +
+            thumbHtml +
+            '<div>' +
             '<div class="admin-item-title">' + item.title + '</div>' +
-            '<div class="admin-item-meta">' + (item.url || '无图片URL') + ' / <span style="display:inline-block;width:12px;height:12px;background:' + item.color + ';border-radius:2px;vertical-align:middle;"></span> ' + item.color + '</div>' +
+            '<div class="admin-item-meta">' + (item.description || '无描述') + ' | ' + (item.url ? (item.url.startsWith('data:') ? '本地图片' : '外链图片') : '纯色块') + '</div>' +
+            '</div>' +
             '</div>' +
             '<div class="admin-item-actions">' +
             '<button class="admin-btn-sm admin-btn-edit" data-edit-gallery="' + i + '">编辑</button>' +
@@ -508,17 +524,28 @@ function renderAdminGallery() {
             document.getElementById('admin-gallery-form-title').textContent = '编辑相册项';
             document.getElementById('admin-edit-gallery-index').value = i;
             document.getElementById('admin-gallery-title').value = item.title;
-            document.getElementById('admin-gallery-url').value = item.url || '';
+            document.getElementById('admin-gallery-desc').value = item.description || '';
             document.getElementById('admin-gallery-color').value = item.color;
             document.getElementById('admin-gallery-submit').textContent = '更新';
             document.getElementById('admin-gallery-cancel').style.display = 'inline-flex';
+            // 编辑时不清空 file input，但显示已有图片的预览
+            var preview = document.getElementById('admin-gallery-preview');
+            if (item.url && item.url.startsWith('data:')) {
+                preview.innerHTML = '<img src="' + item.url + '" class="admin-gallery-preview-img" alt="">';
+                preview.style.display = 'block';
+                document.getElementById('admin-gallery-file-name').textContent = '已上传图片（可重新选择）';
+            } else {
+                preview.innerHTML = '';
+                preview.style.display = 'none';
+                document.getElementById('admin-gallery-file-name').textContent = '';
+            }
+            document.getElementById('admin-gallery-size-warn').style.display = 'none';
         });
     });
 
     document.querySelectorAll('[data-del-gallery]').forEach(function(btn) {
         btn.addEventListener('click', function() {
             var i = parseInt(btn.dataset.delGallery);
-            var dg = galleryItems[i];
             galleryItems.splice(i, 1);
             saveToStorage('blog_gallery', galleryItems);
 
@@ -530,20 +557,39 @@ function renderAdminGallery() {
 
 document.getElementById('admin-gallery-submit').addEventListener('click', function() {
     var title = document.getElementById('admin-gallery-title').value.trim();
-    var url = document.getElementById('admin-gallery-url').value.trim();
+    var description = document.getElementById('admin-gallery-desc').value.trim();
     var color = document.getElementById('admin-gallery-color').value;
+    var fileInput = document.getElementById('admin-gallery-file');
     if (!title) return;
 
-    if (editingGalleryIndex !== null) {
-        galleryItems[editingGalleryIndex] = { title: title, url: url, color: color };
-    } else {
-        galleryItems.push({ title: title, url: url, color: color });
+    function saveItem(url) {
+        if (editingGalleryIndex !== null) {
+            galleryItems[editingGalleryIndex] = { title: title, description: description, color: color, url: url };
+        } else {
+            galleryItems.push({ title: title, description: description, color: color, url: url });
+        }
+        saveToStorage('blog_gallery', galleryItems);
+        cancelEditGallery();
+        renderAdminGallery();
+        renderGallery();
     }
 
-    saveToStorage('blog_gallery', galleryItems);
-    cancelEditGallery();
-    renderAdminGallery();
-    renderGallery();
+    if (fileInput.files && fileInput.files[0]) {
+        var file = fileInput.files[0];
+        if (file.size > 1024 * 1024) {
+            document.getElementById('admin-gallery-size-warn').style.display = 'block';
+        }
+        var reader = new FileReader();
+        reader.onload = function(e) {
+            saveItem(e.target.result);
+        };
+        reader.readAsDataURL(file);
+    } else if (editingGalleryIndex !== null && galleryItems[editingGalleryIndex] && galleryItems[editingGalleryIndex].url) {
+        // 编辑模式且未重新选文件，保留原 url
+        saveItem(galleryItems[editingGalleryIndex].url);
+    } else {
+        saveItem('');
+    }
 });
 
 document.getElementById('admin-gallery-cancel').addEventListener('click', cancelEditGallery);
@@ -553,11 +599,44 @@ function cancelEditGallery() {
     document.getElementById('admin-gallery-form-title').textContent = '新增相册项';
     document.getElementById('admin-edit-gallery-index').value = '';
     document.getElementById('admin-gallery-title').value = '';
-    document.getElementById('admin-gallery-url').value = '';
+    document.getElementById('admin-gallery-desc').value = '';
+    document.getElementById('admin-gallery-file').value = '';
+    document.getElementById('admin-gallery-file-name').textContent = '';
+    document.getElementById('admin-gallery-preview').innerHTML = '';
+    document.getElementById('admin-gallery-preview').style.display = 'none';
+    document.getElementById('admin-gallery-size-warn').style.display = 'none';
     document.getElementById('admin-gallery-color').value = '#2d1b4e';
     document.getElementById('admin-gallery-submit').textContent = '添加';
     document.getElementById('admin-gallery-cancel').style.display = 'none';
 }
+
+// file input change: 预览 + 文件名 + 大小警告
+document.getElementById('admin-gallery-file').addEventListener('change', function() {
+    var file = this.files[0];
+    var nameSpan = document.getElementById('admin-gallery-file-name');
+    var preview = document.getElementById('admin-gallery-preview');
+    var warn = document.getElementById('admin-gallery-size-warn');
+
+    if (file) {
+        nameSpan.textContent = file.name + ' (' + (file.size / 1024).toFixed(0) + ' KB)';
+        var reader = new FileReader();
+        reader.onload = function(e) {
+            preview.innerHTML = '<img src="' + e.target.result + '" class="admin-gallery-preview-img" alt="">';
+            preview.style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+        if (file.size > 1024 * 1024) {
+            warn.style.display = 'block';
+        } else {
+            warn.style.display = 'none';
+        }
+    } else {
+        nameSpan.textContent = '';
+        preview.innerHTML = '';
+        preview.style.display = 'none';
+        warn.style.display = 'none';
+    }
+});
 
 // ---- 管理：文集 ----
 function renderAdminCollections() {
