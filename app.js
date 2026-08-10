@@ -117,6 +117,20 @@ function showSyncError(msg) {
     }
 }
 
+function showSyncSuccess(msg) {
+    var bar = document.getElementById('admin-token-bar');
+    if (bar) {
+        var existing = bar.querySelector('.sync-success-msg');
+        if (existing) existing.remove();
+        var el = document.createElement('span');
+        el.className = 'sync-success-msg';
+        el.style.cssText = 'color:#4ade80;font-size:12px;margin-left:12px;';
+        el.textContent = msg;
+        bar.appendChild(el);
+        setTimeout(function() { if (el.parentNode) el.remove(); }, 3000);
+    }
+}
+
 function hasToken() {
     return !!localStorage.getItem('gh_token');
 }
@@ -250,10 +264,11 @@ function ghSyncCreate(label, bodyObj, title) {
         method: 'POST',
         body: { title: title, body: JSON.stringify(bodyObj), labels: [label] }
     }).then(function(issue) {
+        if (issue) showSyncSuccess('✓ 同步成功');
         return issue ? issue.number : null;
     }).catch(function(err) {
         console.error('GitHub API 错误:', err);
-        showSyncError('同步失败，请检查Token是否有效');
+        showSyncError('✗ 同步失败，请检查Token是否有效');
         return null;
     });
 }
@@ -263,9 +278,11 @@ function ghSyncUpdate(issueNumber, bodyObj) {
     return ghApiRequest('/issues/' + issueNumber, {
         method: 'PATCH',
         body: { body: JSON.stringify(bodyObj) }
+    }).then(function() {
+        showSyncSuccess('✓ 同步成功');
     }).catch(function(err) {
         console.error('GitHub API 错误:', err);
-        showSyncError('同步失败，请检查Token是否有效');
+        showSyncError('✗ 同步失败，请检查Token是否有效');
         return null;
     });
 }
@@ -275,9 +292,11 @@ function ghSyncClose(issueNumber) {
     return ghApiRequest('/issues/' + issueNumber, {
         method: 'PATCH',
         body: { state: 'closed' }
+    }).then(function() {
+        showSyncSuccess('✓ 同步成功');
     }).catch(function(err) {
         console.error('GitHub API 错误:', err);
-        showSyncError('同步失败，请检查Token是否有效');
+        showSyncError('✗ 同步失败，请检查Token是否有效');
         return null;
     });
 }
