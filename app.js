@@ -804,12 +804,37 @@ document.addEventListener('keydown', function(e) {
     }
 });
 
+// ===== 导出数据到剪贴板 =====
+function exportDataToClipboard() {
+    var data = {
+        blog_articles: JSON.parse(localStorage.getItem('blog_articles') || '[]'),
+        blog_moments: JSON.parse(localStorage.getItem('blog_moments') || '[]'),
+        blog_gallery: JSON.parse(localStorage.getItem('blog_gallery') || '[]'),
+        blog_collections: JSON.parse(localStorage.getItem('blog_collections') || '[]'),
+        blog_trade_records: JSON.parse(localStorage.getItem('blog_trade_records') || '[]')
+    };
+    var jsonStr = JSON.stringify(data, null, 2);
+    var btn = document.getElementById('admin-export-data');
+    navigator.clipboard.writeText(jsonStr).then(function() {
+        if (btn) {
+            btn.textContent = '已复制';
+            setTimeout(function() { btn.textContent = '导出数据'; }, 1500);
+        }
+    }).catch(function() {
+        if (btn) {
+            btn.textContent = '复制失败';
+            setTimeout(function() { btn.textContent = '导出数据'; }, 1500);
+        }
+    });
+}
+
 // ===== 登录事件绑定（DOMContentLoaded 确保元素就绪）=====
 document.addEventListener('DOMContentLoaded', function() {
     var loginSubmit = document.getElementById('login-submit');
     var loginPass = document.getElementById('login-password');
     var loginUser = document.getElementById('login-username');
     var adminPwdBtn = document.getElementById('admin-change-pwd');
+    var adminExportBtn = document.getElementById('admin-export-data');
     var pwdSubmit = document.getElementById('pwd-submit');
     var pwdCancel = document.getElementById('pwd-cancel');
     var pwdModal = document.getElementById('pwd-modal-overlay');
@@ -824,6 +849,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     if (adminPwdBtn) adminPwdBtn.addEventListener('click', showPwdModal);
+    if (adminExportBtn) adminExportBtn.addEventListener('click', exportDataToClipboard);
     if (pwdSubmit) pwdSubmit.addEventListener('click', doChangePwd);
     if (pwdCancel) pwdCancel.addEventListener('click', hidePwdModal);
     if (pwdModal) pwdModal.addEventListener('click', function(e) {
