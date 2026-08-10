@@ -59,27 +59,21 @@ const DEFAULT_COLLECTIONS = [
     { name: '工具系列', articleIds: [4, 6] },
 ];
 
+const DATA_VERSION = 2;
+
 const DEFAULT_TRADE_RECORDS = [
-    // 08-01 131810 买+卖
-    { id: 1,  date: '2026-08-01', type: '逆回购买入', code: '131810', name: 'R-001',  amount: 20000,    fee: 0.06 },
-    { id: 2,  date: '2026-08-01', type: '逆回购卖出', code: '131810', name: 'R-001',  amount: 20000.65, fee: 0    },
-    // 08-02 204001 买+卖
-    { id: 3,  date: '2026-08-02', type: '逆回购买入', code: '204001', name: 'GC001', amount: 20000,    fee: 0.08 },
-    { id: 4,  date: '2026-08-02', type: '逆回购卖出', code: '204001', name: 'GC001', amount: 20000.70, fee: 0    },
-    // 08-03 131810 买+卖
-    { id: 5,  date: '2026-08-03', type: '逆回购买入', code: '131810', name: 'R-001',  amount: 20000,    fee: 0.07 },
-    { id: 6,  date: '2026-08-03', type: '逆回购卖出', code: '131810', name: 'R-001',  amount: 20000.68, fee: 0    },
-    // 08-04 204001 买+卖
-    { id: 7,  date: '2026-08-04', type: '逆回购买入', code: '204001', name: 'GC001', amount: 20000,    fee: 0.09 },
-    { id: 8,  date: '2026-08-04', type: '逆回购卖出', code: '204001', name: 'GC001', amount: 20000.72, fee: 0    },
-    // 08-05 131810 买+卖
-    { id: 9,  date: '2026-08-05', type: '逆回购买入', code: '131810', name: 'R-001',  amount: 20000,    fee: 0.06 },
-    { id: 10, date: '2026-08-05', type: '逆回购卖出', code: '131810', name: 'R-001',  amount: 20000.62, fee: 0    },
-    // 08-06 204001 买+卖
-    { id: 11, date: '2026-08-06', type: '逆回购买入', code: '204001', name: 'GC001', amount: 20000,    fee: 0.12 },
-    { id: 12, date: '2026-08-06', type: '逆回购卖出', code: '204001', name: 'GC001', amount: 20000.76, fee: 0    },
-    // 08-07 131810 买入
-    { id: 13, date: '2026-08-07', type: '逆回购买入', code: '131810', name: 'R-001',  amount: 20000,    fee: 0.12 },
+    { id: 1,  date: '2026-08-07', type: '逆回购卖出', code: '131810', name: 'R-001',  amount: 20002.23, fee: 0.00 },
+    { id: 2,  date: '2026-08-06', type: '逆回购买入', code: '131810', name: 'R-001',  amount: 20000.00, fee: 0.20 },
+    { id: 3,  date: '2026-08-05', type: '逆回购卖出', code: '204001', name: 'GC001', amount: 5000.21,  fee: 0.00 },
+    { id: 4,  date: '2026-08-05', type: '逆回购卖出', code: '204001', name: 'GC001', amount: 5000.21,  fee: 0.00 },
+    { id: 5,  date: '2026-08-05', type: '逆回购卖出', code: '204001', name: 'GC001', amount: 10000.42, fee: 0.00 },
+    { id: 6,  date: '2026-08-04', type: '逆回购卖出', code: '204001', name: 'GC001', amount: 1000.04,  fee: 0.00 },
+    { id: 7,  date: '2026-08-04', type: '逆回购卖出', code: '204001', name: 'GC001', amount: 19000.77, fee: 0.00 },
+    { id: 8,  date: '2026-08-04', type: '逆回购买入', code: '204001', name: 'GC001', amount: 10000.00, fee: 0.10 },
+    { id: 9,  date: '2026-08-04', type: '逆回购买入', code: '204001', name: 'GC001', amount: 5000.00,  fee: 0.05 },
+    { id: 10, date: '2026-08-04', type: '逆回购买入', code: '204001', name: 'GC001', amount: 5000.00,  fee: 0.05 },
+    { id: 11, date: '2026-08-03', type: '逆回购买入', code: '204001', name: 'GC001', amount: 19000.00, fee: 0.19 },
+    { id: 12, date: '2026-08-03', type: '逆回购买入', code: '204001', name: 'GC001', amount: 1000.00,  fee: 0.01 },
 ];
 
 // ===== 数据持久化 =====
@@ -291,15 +285,17 @@ let galleryItems = loadFromStorage('blog_gallery', DEFAULT_GALLERY);
 let collections = loadFromStorage('blog_collections', DEFAULT_COLLECTIONS);
 let guestbookMessages = loadFromStorage('blog_guestbook', []);
 let tradeRecords = (function() {
+    var storedVersion = localStorage.getItem('data_version');
+    if (!storedVersion || storedVersion !== String(DATA_VERSION)) {
+        localStorage.setItem('blog_trade_records', JSON.stringify(DEFAULT_TRADE_RECORDS));
+        localStorage.setItem('data_version', String(DATA_VERSION));
+        return JSON.parse(JSON.stringify(DEFAULT_TRADE_RECORDS));
+    }
     var raw = loadFromStorage('blog_trade_records', DEFAULT_TRADE_RECORDS);
     // 旧结构迁移（含 net 字段）
     if (raw.length > 0 && raw[0].hasOwnProperty('net')) {
         localStorage.setItem('blog_trade_records', JSON.stringify(DEFAULT_TRADE_RECORDS));
-        return JSON.parse(JSON.stringify(DEFAULT_TRADE_RECORDS));
-    }
-    // 旧预置 26 笔 → 新 13 笔默认数据迁移
-    if (raw.length >= 14 && raw.some(function(r) { return r.id >= 14 && r.code === '204001' && r.type === '逆回购卖出'; })) {
-        localStorage.setItem('blog_trade_records', JSON.stringify(DEFAULT_TRADE_RECORDS));
+        localStorage.setItem('data_version', String(DATA_VERSION));
         return JSON.parse(JSON.stringify(DEFAULT_TRADE_RECORDS));
     }
     return raw;
