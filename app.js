@@ -610,6 +610,7 @@ document.getElementById('admin-article-submit').addEventListener('click', functi
         articles.push({ id: maxId + 1, title: title, category: category, date: date, excerpt: excerpt, content: content });
     }
 
+    saveToStorage('blog_articles', articles);
     cancelEditArticle();
     renderAdminArticles();
     renderAllPosts();
