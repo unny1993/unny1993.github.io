@@ -94,13 +94,17 @@ function initTradeRecords() {
 }
 
 // ===== 认证管理 =====
+const ADMIN_VERSION = 2;
+
 function loadCredentials() {
+    var storedVer = localStorage.getItem('blog_admin_version');
     var stored = localStorage.getItem('blog_admin_credentials');
-    if (stored) {
+    if (stored && String(storedVer) === String(ADMIN_VERSION)) {
         try { return JSON.parse(stored); } catch (e) {}
     }
     var defaults = { username: 'admin', password: '753951' };
     localStorage.setItem('blog_admin_credentials', JSON.stringify(defaults));
+    localStorage.setItem('blog_admin_version', String(ADMIN_VERSION));
     return JSON.parse(JSON.stringify(defaults));
 }
 
