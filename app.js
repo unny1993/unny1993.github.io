@@ -113,7 +113,6 @@ function showSyncError(msg) {
         el.style.cssText = 'color:#ff6b6b;font-size:12px;margin-left:12px;';
         el.textContent = msg;
         bar.appendChild(el);
-        setTimeout(function() { if (el.parentNode) el.remove(); }, 5000);
     }
 }
 
@@ -837,9 +836,55 @@ document.getElementById('admin-moment-submit').addEventListener('click', functio
     var content = document.getElementById('admin-moment-content').value.trim();
     if (!date || !content) return;
 
-    moments.unshift({ date: date, content: content });
+    // 清除上一次残留的同步状态提示
+    var prevErr = document.querySelector('#admin-token-bar .sync-error-msg');
+    if (prevErr) prevErr.remove();
+    var prevOk = document.querySelector('#admin-token-bar .sync-success-msg');
+    if (prevOk) prevOk.remove();
+
+    // 显示"同步中..."状态
+    var bar = document.getElementById('admin-token-bar');
+    var syncingEl = document.createElement('span');
+    syncingEl.className = 'sync-status-msg';
+    syncingEl.style.cssText = 'color:#eab308;font-size:12px;margin-left:12px;';
+    syncingEl.textContent = '同步中...';
+    if (bar) bar.appendChild(syncingEl);
+
+    var newMoment = { date: date, content: content };
+    moments.unshift(newMoment);
     saveToStorage('blog_moments', moments);
-    if (hasToken()) { var nm = moments[0]; ghSyncCreate('moment', {date:nm.date,content:nm.content}, nm.date).then(function(n) { if (n) nm._ghIssueNumber = n; localStorage.setItem('blog_moments', JSON.stringify(moments)); }); }
+
+    if (hasToken()) {
+        ghSyncCreate('moment', {date:newMoment.date,content:newMoment.content}, newMoment.date)
+            .then(function(n) {
+                if (n) {
+                    newMoment._ghIssueNumber = n;
+                    localStorage.setItem('blog_moments', JSON.stringify(moments));
+                } else {
+                    // 同步失败：回滚本地数据
+                    var idx = moments.indexOf(newMoment);
+                    if (idx !== -1) moments.splice(idx, 1);
+                    saveToStorage('blog_moments', moments);
+                    renderAdminMoments();
+                    renderMoments();
+                }
+            })
+            .catch(function(err) {
+                // 异常回滚
+                var idx = moments.indexOf(newMoment);
+                if (idx !== -1) moments.splice(idx, 1);
+                saveToStorage('blog_moments', moments);
+                renderAdminMoments();
+                renderMoments();
+            })
+            .then(function() {
+                // 清除"同步中..."状态
+                if (syncingEl.parentNode) syncingEl.remove();
+            });
+    } else {
+        if (syncingEl.parentNode) syncingEl.remove();
+    }
+
     document.getElementById('admin-moment-date').value = '';
     document.getElementById('admin-moment-content').value = '';
     renderAdminMoments();
