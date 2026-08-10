@@ -168,37 +168,60 @@ function ghFetchByLabel(label) {
     });
 }
 
-// ===== 读取：把所有 label 的数据合并到运行时数组 =====
+// ===== 一次性拉取所有 Issues（不带 label 过滤，减少 API 请求次数）=====
+function ghFetchAllIssues() {
+    return fetch(GH_API_BASE + '/issues?state=open&per_page=100', {
+        headers: { 'Accept': 'application/vnd.github.v3+json' }
+    }).then(function(res) {
+        if (res.status === 403) return { _blocked: true };
+        if (!res.ok) throw new Error('GitHub API ' + res.status);
+        return res.json();
+    }).catch(function(err) {
+        console.error('GitHub Issues 读取失败，降级使用本地数据:', err);
+        return null;
+    });
+}
+
+// ===== 读取：从 GitHub 拉取全部 Issues → 前端按 label 分类 → 合并到运行时数组 =====
 function ghLoadAllData() {
-    var labels = ['article', 'moment', 'album', 'collection', 'trade'];
-    return Promise.all(labels.map(function(label) {
-        return ghFetchByLabel(label).then(function(issues) {
-            if (issues && issues._blocked) return { label: label, data: [], _blocked: true };
-            if (!issues || !issues.length) return { label: label, data: [] };
-            var parsed = [];
-            for (var i = 0; i < issues.length; i++) {
-                try {
-                    var d = JSON.parse(issues[i].body || '');
-                    d._ghIssueNumber = issues[i].number;
-                    parsed.push(d);
-                } catch(e) { /* skip malformed */ }
+    var validLabels = ['article', 'moment', 'album', 'collection', 'trade'];
+    return ghFetchAllIssues().then(function(allIssues) {
+        if (!allIssues || allIssues._blocked) {
+            if (allIssues && allIssues._blocked) {
+                showSyncBlocked(true);
             }
-            return { label: label, data: parsed };
-        });
-    })).then(function(results) {
-        // 如果所有 label 都被 403 阻塞，跳过合并，保持 localStorage 不变
-        var allBlocked = results.length > 0 && results.every(function(r) { return r._blocked; });
-        if (allBlocked) {
-            showSyncBlocked(true);
             return;
         }
         showSyncBlocked(false);
+
+        // 按 label 分类到五个桶
+        var buckets = {};
+        for (var li = 0; li < validLabels.length; li++) {
+            buckets[validLabels[li]] = [];
+        }
+        for (var i = 0; i < allIssues.length; i++) {
+            var issue = allIssues[i];
+            var issueLabels = issue.labels || [];
+            for (var j = 0; j < issueLabels.length; j++) {
+                var name = issueLabels[j].name;
+                if (buckets.hasOwnProperty(name)) {
+                    try {
+                        var d = JSON.parse(issue.body || '');
+                        d._ghIssueNumber = issue.number;
+                        buckets[name].push(d);
+                    } catch(e) { /* skip malformed */ }
+                    break;
+                }
+            }
+        }
+
         var changed = false;
-        for (var i = 0; i < results.length; i++) {
-            var r = results[i];
-            var key = GH_KEY_BY_LABEL[r.label];
+        for (var li = 0; li < validLabels.length; li++) {
+            var label = validLabels[li];
+            var key = GH_KEY_BY_LABEL[label];
             if (!key) continue;
-            if (r.data.length > 0) {
+            var rData = buckets[label];
+            if (rData.length > 0) {
                 // 以 localStorage 为主，Issues 数据仅用于补充和回填 _ghIssueNumber
                 var localRaw = localStorage.getItem(key);
                 var localItems = localRaw ? (function(){ try { return JSON.parse(localRaw); } catch(e){ return []; } })() : [];
@@ -208,8 +231,8 @@ function ghLoadAllData() {
                            : (key === 'blog_collections') ? 'name' : 'id';
                 // 以 localStorage 为本体
                 var merged = localItems.slice();
-                for (var j = 0; j < r.data.length; j++) {
-                    var issueItem = r.data[j];
+                for (var j = 0; j < rData.length; j++) {
+                    var issueItem = rData[j];
                     var existingIdx = -1;
                     if (idKey === null) {
                         // moments: 用 date + content 匹配
