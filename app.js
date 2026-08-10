@@ -48,6 +48,19 @@ const DEFAULT_TRADE_RECORDS = [
     { date: '2026-08-07', type: '逆回购卖出', code: '', name: 'R-001', amount: 20002.23, fee: 0, id: 12 }
 ];
 
+// ===== 数据版本控制 =====
+const DATA_VERSION = 1;
+
+(function checkDataVersion() {
+    var storedVer = localStorage.getItem('blog_data_version');
+    if (String(storedVer) !== String(DATA_VERSION)) {
+        ['blog_articles', 'blog_moments', 'blog_gallery', 'blog_collections', 'blog_trade_records'].forEach(function(k) {
+            localStorage.removeItem(k);
+        });
+        localStorage.setItem('blog_data_version', DATA_VERSION);
+    }
+})();
+
 
 function renderCurrentView() {
     switch (currentView) {
