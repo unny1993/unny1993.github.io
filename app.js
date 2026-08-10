@@ -61,6 +61,24 @@ const DEFAULT_COLLECTIONS = [
 
 const DATA_VERSION = 2;
 
+// ===== 调试模式（URL 加 ?debug=1 启用）=====
+var GH_DEBUG = window.location.search.indexOf('debug=1') >= 0;
+var _ghDebugLog = [];
+function ghDebugLog(msg) {
+    if (!GH_DEBUG) return;
+    _ghDebugLog.push(new Date().toLocaleTimeString() + ' ' + msg);
+    var el = document.getElementById('gh-debug');
+    if (el) el.textContent = _ghDebugLog.join('\n');
+}
+function ghInitDebug() {
+    if (!GH_DEBUG) return;
+    var div = document.createElement('div');
+    div.id = 'gh-debug';
+    div.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:#111;color:#0f0;font:11px monospace;padding:8px;max-height:180px;overflow-y:auto;z-index:9999;opacity:0.85;border-top:1px solid #333';
+    document.body.appendChild(div);
+    ghDebugLog('Debug mode ON');
+}
+
 const DEFAULT_TRADE_RECORDS = [
     { id: 1,  date: '2026-08-07', type: '逆回购卖出', code: '131810', name: 'R-001',  amount: 20002.23, fee: 0.00 },
     { id: 2,  date: '2026-08-06', type: '逆回购买入', code: '131810', name: 'R-001',  amount: 20000.00, fee: 0.20 },
@@ -156,28 +174,36 @@ function ghApiRequest(endpoint, options) {
 
 // ===== 从 GitHub 拉取数据 =====
 function ghFetchByLabel(label) {
+    ghDebugLog('ghFetchByLabel start: label=' + label);
     return fetch(GH_API_BASE + '/issues?labels=' + label + '&state=open&per_page=100', {
         headers: { 'Accept': 'application/vnd.github.v3+json' }
     }).then(function(res) {
-        if (res.status === 403) return { _blocked: true };
+        ghDebugLog('ghFetchByLabel response: ' + label + ' status=' + res.status + ' remaining=' + (res.headers.get('X-RateLimit-Remaining') || '?'));
+        if (res.status === 403) return { _blocked: true, _reason: 'ratelimit' };
         if (!res.ok) throw new Error('GitHub API ' + res.status);
         return res.json();
     }).catch(function(err) {
-        console.error('GitHub Issues 读取失败，降级使用本地数据:', err);
+        console.error('[ghFetchByLabel]', err.name || 'Error', err.message || err);
+        ghDebugLog('ghFetchByLabel ERROR: ' + (err.name || 'Error') + ' - ' + (err.message || err));
+        if (err instanceof TypeError) return { _blocked: true, _reason: 'network' };
         return null;
     });
 }
 
 // ===== 一次性拉取所有 Issues（不带 label 过滤，减少 API 请求次数）=====
 function ghFetchAllIssues() {
+    ghDebugLog('ghFetchAllIssues start');
     return fetch(GH_API_BASE + '/issues?state=open&per_page=100', {
         headers: { 'Accept': 'application/vnd.github.v3+json' }
     }).then(function(res) {
-        if (res.status === 403) return { _blocked: true };
+        ghDebugLog('ghFetchAllIssues response: status=' + res.status + ' remaining=' + (res.headers.get('X-RateLimit-Remaining') || '?'));
+        if (res.status === 403) return { _blocked: true, _reason: 'ratelimit' };
         if (!res.ok) throw new Error('GitHub API ' + res.status);
         return res.json();
     }).catch(function(err) {
-        console.error('GitHub Issues 读取失败，降级使用本地数据:', err);
+        console.error('[ghFetchAllIssues]', err.name || 'Error', err.message || err);
+        ghDebugLog('ghFetchAllIssues ERROR: ' + (err.name || 'Error') + ' - ' + (err.message || err));
+        if (err instanceof TypeError) return { _blocked: true, _reason: 'network' };
         return null;
     });
 }
@@ -187,12 +213,19 @@ function ghLoadAllData() {
     var validLabels = ['article', 'moment', 'album', 'collection', 'trade'];
     return ghFetchAllIssues().then(function(allIssues) {
         if (!allIssues || allIssues._blocked) {
-            if (allIssues && allIssues._blocked) {
+            if (allIssues && allIssues._reason === 'ratelimit') {
                 showSyncBlocked(true);
+                ghDebugLog('ghLoadAllData: ratelimit blocked');
+            } else if (allIssues && allIssues._reason === 'network') {
+                // 访客模式下静默，不做 UI 提示
+                ghDebugLog('ghLoadAllData: network error, silent');
+            } else {
+                ghDebugLog('ghLoadAllData: unknown error, silent');
             }
             return;
         }
         showSyncBlocked(false);
+        ghDebugLog('ghLoadAllData: success, total issues=' + allIssues.length);
 
         // 按 label 分类到五个桶
         var buckets = {};
@@ -1326,6 +1359,7 @@ document.addEventListener('DOMContentLoaded', function() {
     var pwdModal = document.getElementById('pwd-modal-overlay');
     var pwdConfirm = document.getElementById('pwd-confirm');
 
+    ghInitDebug();
     if (loginSubmit) loginSubmit.addEventListener('click', doLogin);
     if (loginPass) loginPass.addEventListener('keydown', function(e) {
         if (e.key === 'Enter') doLogin();
