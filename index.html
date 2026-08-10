@@ -860,13 +860,14 @@
             if (!canvas) return;
             var wrap = canvas.parentElement;
             var isMobile = window.innerWidth <= 768;
-            var w = Math.min(wrap.clientWidth || (isMobile ? 320 : 640), isMobile ? 600 : 9999);
+            var w = Math.min(wrap.clientWidth || 320, window.innerWidth - 24);
             var h = isMobile ? 200 : 500;
             var dpr = window.devicePixelRatio || 1;
             canvas.width = w * dpr;
             canvas.height = h * dpr;
             canvas.style.width = w + 'px';
             canvas.style.height = h + 'px';
+            canvas.style.maxWidth = '100%';
             var ctx = canvas.getContext('2d');
             ctx.scale(dpr, dpr);
 
@@ -954,14 +955,15 @@
             if (!canvas) return;
             var wrap = canvas.parentElement;
             var isMobile = window.innerWidth <= 768;
-            var wrapW = wrap.clientWidth || (isMobile ? 320 : 640);
-            var w = isMobile ? 250 : Math.min(wrapW, 350);
+            var wrapW = wrap.clientWidth || 320;
+            var w = isMobile ? Math.min(wrapW || 300, window.innerWidth - 24) : Math.min(wrapW, 350);
             var h = isMobile ? 250 : 350;
             var dpr = window.devicePixelRatio || 1;
             canvas.width = w * dpr;
             canvas.height = h * dpr;
             canvas.style.width = w + 'px';
             canvas.style.height = h + 'px';
+            canvas.style.maxWidth = '100%';
             var ctx = canvas.getContext('2d');
             ctx.scale(dpr, dpr);
 
@@ -1047,13 +1049,15 @@
             if (!canvas) return;
             var wrap = canvas.parentElement;
             var isMobile = window.innerWidth <= 768;
-            var w = isMobile ? 220 : 280;
+            var wrapW = wrap.clientWidth;
+            var w = isMobile ? Math.min(wrapW || 220, window.innerWidth - 24) : 280;
             var h = isMobile ? 220 : 280;
             var dpr = window.devicePixelRatio || 1;
             canvas.width = w * dpr;
             canvas.height = h * dpr;
             canvas.style.width = w + 'px';
             canvas.style.height = h + 'px';
+            canvas.style.maxWidth = '100%';
             var ctx = canvas.getContext('2d');
             ctx.scale(dpr, dpr);
 
