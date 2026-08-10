@@ -103,6 +103,20 @@ function clearToken() {
     sessionStorage.removeItem('gh_token');
 }
 
+function showSyncError(msg) {
+    var bar = document.getElementById('admin-token-bar');
+    if (bar) {
+        var existing = bar.querySelector('.sync-error-msg');
+        if (existing) existing.remove();
+        var el = document.createElement('span');
+        el.className = 'sync-error-msg';
+        el.style.cssText = 'color:#ff6b6b;font-size:12px;margin-left:12px;';
+        el.textContent = msg;
+        bar.appendChild(el);
+        setTimeout(function() { if (el.parentNode) el.remove(); }, 5000);
+    }
+}
+
 function hasToken() {
     return !!sessionStorage.getItem('gh_token');
 }
@@ -112,7 +126,7 @@ function ghApiRequest(endpoint, options) {
     var token = getToken();
     var headers = { 'Accept': 'application/vnd.github.v3+json', 'Content-Type': 'application/json' };
     if (token) {
-        headers['Authorization'] = 'token ' + token;
+        headers['Authorization'] = 'Bearer ' + token;
     }
     var fetchOpts = { headers: headers };
     if (options && options.method) {
@@ -130,7 +144,8 @@ function ghApiRequest(endpoint, options) {
 
 // ===== 从 GitHub 拉取数据 =====
 function ghFetchByLabel(label) {
-    return ghApiRequest('/issues?labels=' + label + '&state=open&per_page=100').catch(function() {
+    return ghApiRequest('/issues?labels=' + label + '&state=open&per_page=100').catch(function(err) {
+        console.error('GitHub API 错误:', err);
         return null;
     });
 }
@@ -207,7 +222,11 @@ function ghSyncCreate(label, bodyObj, title) {
         body: { title: title, body: JSON.stringify(bodyObj), labels: [label] }
     }).then(function(issue) {
         return issue ? issue.number : null;
-    }).catch(function() { return null; });
+    }).catch(function(err) {
+        console.error('GitHub API 错误:', err);
+        showSyncError('同步失败，请检查Token是否有效');
+        return null;
+    });
 }
 
 function ghSyncUpdate(issueNumber, bodyObj) {
@@ -215,7 +234,11 @@ function ghSyncUpdate(issueNumber, bodyObj) {
     return ghApiRequest('/issues/' + issueNumber, {
         method: 'PATCH',
         body: { body: JSON.stringify(bodyObj) }
-    }).catch(function() { return null; });
+    }).catch(function(err) {
+        console.error('GitHub API 错误:', err);
+        showSyncError('同步失败，请检查Token是否有效');
+        return null;
+    });
 }
 
 function ghSyncClose(issueNumber) {
@@ -223,7 +246,11 @@ function ghSyncClose(issueNumber) {
     return ghApiRequest('/issues/' + issueNumber, {
         method: 'PATCH',
         body: { state: 'closed' }
-    }).catch(function() { return null; });
+    }).catch(function(err) {
+        console.error('GitHub API 错误:', err);
+        showSyncError('同步失败，请检查Token是否有效');
+        return null;
+    });
 }
 
 // ===== Seed 数据：如果 Issues 为空，用默认数据创建初始 Issues =====
@@ -747,7 +774,6 @@ function renderAdminMoments() {
     document.querySelectorAll('[data-del-moment]').forEach(function(btn) {
         btn.addEventListener('click', function() {
             var i = parseInt(btn.dataset.delMoment);
-            moments.splice(i, 1);
             var dm = moments[i];
             moments.splice(i, 1);
             saveToStorage('blog_moments', moments);
