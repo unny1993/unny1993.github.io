@@ -5,6 +5,19 @@
 - 分支: main
 - 本地: C:\Users\a1324\blog-push（唯一本地仓库；D:\BLOG 已于 2026-08-10 删除）
 
+## ⚡ 快速推送链路（导出数据一键回填+推送，推荐）
+> 后台「导出文件」得到 blog-data.json 后，一条命令完成：识别变化 → 回填 DEFAULT_XXX → 升 DATA_VERSION → 更新 cache-bust → 提交推送（post-commit 钩子自动备份）。
+```bash
+cd C:\Users\a1324\blog-push
+bash update-data.sh "C:/Users/a1324/Downloads/blog-data.json" push   # 完整链路（提交+推送）
+bash update-data.sh "C:/Users/a1324/Downloads/blog-data.json"        # 只回填不推送
+bash update-data.sh "C:/Users/a1324/Downloads/blog-data.json" --check # 只识别变化，不动文件
+```
+> - **无变化时脚本直接退出**，不会产生空提交、不会空升版本。
+> - 建议导出文件固定命名 `blog-data.json` 覆盖保存，不要存 `(1)(2)` 副本，避免混淆。
+> - 本机工具（update-data.py / update-data.sh / backup.sh）已加入 .gitignore，不入仓库；换新电脑需连同 .git/hooks/post-commit 一起重建（找我即可）。
+> - 快速推送链路已实测：无变化识别 ✓ / 变化回填（moments 1→2 升 DATA_VERSION）✓ / 中文提交消息 ✓ / 幂等 ✓
+
 ## 推送命令
 ```bash
 cd C:\Users\a1324\blog-push
