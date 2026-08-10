@@ -16,15 +16,17 @@ git push origin main
 
 ## 备份（推送成功后必做）
 ```bash
+# 1) 离线 bundle 兜底（不在任何同步盘内）
 git bundle create C:\Users\a1324\backup\blog-push-$(date +%Y%m%d).bundle --all
-```
-> `C:\Users\a1324\backup` 不在阿里云同步范围内，作为本地离线兜底；恢复方法：`git clone <bundle文件> 新目录`。GitHub 远端是权威源（Pages 从 GitHub 拉），本地 `.git` 即使被同步盘搞坏也能秒级恢复。
 
-## ⚠️ 阿里云同步风险（重要）
-- 本地目录 `C:\Users\a1324\blog-push` 被阿里云同步盘以 backup 模式整目录监控（含 `.git`）。
-- 官方客户端排除规则只支持按文件扩展名/类别，**无法排除 `.git` 目录**（其内多为无扩展名文件），直接改客户端数据库会被覆盖。
-- 风险：push/commit 时同步客户端可能锁住 `index`/`packed-refs`，偶发 `index.lock`/`cannot lock ref` 错误。遇到报错把信息发给 AI 排查即可，数据不会丢（有 GitHub + bundle 双保险）。
-- 彻底根除方案（可选）：把仓库迁出同步目录（如 `C:\repos\blog-push`），阿里云只同步发布产物。
+# 2) 同步纯文件备份目录（阿里云同步盘监控这个目录，不含 .git）
+cp -f app.js index.html style.css rss.xml avatar.jpeg README.md .nojekyll C:/Users/a1324/blog-backup/
+```
+> `C:\Users\a1324\backup` 是本地离线 bundle 兜底（不在同步盘）；`C:\Users\a1324\blog-backup` 是纯发布文件备份目录（无 .git），**请在阿里云同步盘客户端把同步/备份路径指向它**。bundle 恢复方法：`git clone <bundle文件> 新目录`。GitHub 远端是权威源（Pages 从 GitHub 拉）。
+
+## ⚠️ 阿里云同步策略（重要）
+- **不要把 git 仓库目录（C:\Users\a1324\blog-push）放进阿里云同步盘**：官方客户端排除规则只支持按文件扩展名/类别，无法排除 `.git` 目录（其内多为无扩展名文件）；同步客户端会锁住 `index`/`packed-refs`，导致偶发 `index.lock`/`cannot lock ref`（2026-08-10 实测遇到过一次）。
+- **正确姿势**：git 仓库留在本地不参与同步；每次推送后把 7 个发布文件复制到 `C:\Users\a1324\blog-backup`，阿里云只同步这个纯文件目录做云端备份。
 
 ## 关键文件
 - index.html — 首页 + 仪表盘渲染逻辑
