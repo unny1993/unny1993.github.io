@@ -19,53 +19,33 @@ function saveToStorage(key, data) {
 }
 
 // ===== 默认数据 =====
-const DEFAULT_ARTICLES = [
-    { id: 1, title: "JavaScript 异步编程深入理解", category: "前端", date: "2026-07-28", excerpt: "从回调地狱到 Promise，再到 async/await，深入探讨 JavaScript 异步编程的演进历程与最佳实践。", content: "<p>JavaScript 的异步编程模型经历了多次重大变革。理解这些变革背后的动机，对于写出高质量的前端代码至关重要。</p><h2>回调函数时代</h2><p>早期的 JavaScript 异步操作依赖回调函数。当多个异步操作需要按顺序执行时，代码会迅速变成所谓的\"回调地狱\"。</p><pre><code>fetchUser(userId, function(user) {\n    fetchPosts(user.id, function(posts) {\n        fetchComments(posts[0].id, function(comments) {\n            console.log(comments);\n        });\n    });\n});</code></pre><h2>Promise 的引入</h2><p>Promise 提供了一种更优雅的方式来处理异步操作。它将异步操作封装成一个对象，通过 <code>.then()</code> 链式调用来组织流程，避免了深层嵌套。</p><h2>async / await</h2><p>ES2017 引入的 async/await 语法将异步代码写成了同步风格，极大提升了可读性。它是基于 Promise 的语法糖，但让错误处理（try/catch）和条件逻辑变得更加自然。</p><blockquote>选择哪种异步方案取决于具体场景：简单串行用 async/await，需要并发控制时善用 Promise.all 和 Promise.race。</blockquote>" },
-    { id: 2, title: "Python 数据分析入门指南", category: "后端", date: "2026-07-20", excerpt: "使用 Pandas、Matplotlib 和 NumPy 快速上手数据分析，从数据清洗到可视化一站式讲解。", content: "<p>Python 凭借其丰富的数据科学生态，已成为数据分析领域的首选语言。本文带你从零开始，掌握核心工具。</p><h2>环境准备</h2><p>建议使用 Anaconda 发行版或 pip 安装核心库：</p><pre><code>pip install pandas numpy matplotlib</code></pre><h2>Pandas 数据读取与清洗</h2><p>Pandas 的 DataFrame 是数据分析的核心数据结构。你可以轻松地从 CSV、Excel、SQL 等多种来源加载数据。</p><h3>常用操作</h3><ul><li><code>df.head()</code> — 查看前几行数据</li><li><code>df.info()</code> — 了解数据类型和缺失情况</li><li><code>df.dropna()</code> — 处理缺失值</li><li><code>df.groupby()</code> — 分组聚合</li></ul><h2>数据可视化</h2><p>Matplotlib 和 Seaborn 让你能用几行代码生成专业图表。从折线图到热力图，覆盖绝大多数分析场景。</p><blockquote>数据清洗通常占据数据分析 80% 的时间，掌握 Pandas 的清洗技巧是效率的关键。</blockquote>" },
-    { id: 3, title: "CSS Grid 布局完全指南", category: "前端", date: "2026-07-12", excerpt: "掌握 CSS Grid 布局的核心概念，用最少的代码实现最灵活的页面布局方案。", content: "<p>CSS Grid 是二维布局系统，可以同时控制行和列，是构建复杂页面布局的终极方案。</p><h2>核心概念</h2><p>Grid 布局由容器（Grid Container）和项目（Grid Items）组成。在容器上定义网格轨道（行和列），项目自动放置到对应的单元格中。</p><pre><code>.container {\n    display: grid;\n    grid-template-columns: repeat(3, 1fr);\n    grid-template-rows: auto;\n    gap: 20px;\n}</code></pre><h2>常用属性速查</h2><ul><li><code>grid-template-columns</code> — 定义列宽</li><li><code>grid-template-rows</code> — 定义行高</li><li><code>grid-gap / gap</code> — 网格间距</li><li><code>grid-column / grid-row</code> — 项目跨列/跨行</li></ul><blockquote>Grid 配合 Flexbox 使用，可以覆盖 99% 的布局需求。Grid 负责页面整体骨架，Flexbox 负责组件内部排列。</blockquote>" },
-    { id: 4, title: "Git 工作流最佳实践", category: "工具", date: "2026-07-05", excerpt: "从分支策略到 commit 规范，打造高效的团队协作 Git 工作流。", content: "<p>Git 是现代软件开发不可或缺的工具。掌握规范的工作流，能让团队协作事半功倍。</p><h2>分支策略</h2><p>推荐使用 Git Flow 或 GitHub Flow。核心原则：主分支保持稳定可部署，功能开发在特性分支上进行，通过 Pull Request 合并。</p><h2>Commit 规范</h2><p>好的 commit message 遵循以下格式：</p><pre><code>type(scope): subject\n\nbody (optional)</code></pre><p>常用的 type 包括：feat（新功能）、fix（修复）、docs（文档）、refactor（重构）、style（格式）等。</p><h2>实用技巧</h2><ul><li><code>git rebase -i</code> — 整理提交历史</li><li><code>git stash</code> — 暂存未提交的修改</li><li><code>git cherry-pick</code> — 选择性合并提交</li><li><code>git bisect</code> — 二分法定位 bug</li></ul><blockquote>频繁提交、小步合并：每次 commit 只做一件事，每个 PR 保持合理的规模，这样 Code Review 才高效。</blockquote>" },
-    { id: 5, title: "Web 性能优化实战", category: "前端", date: "2026-06-28", excerpt: "从资源加载、渲染优化到缓存策略，全面提升网站性能的实战指南。", content: "<p>网站性能直接影响用户体验和 SEO 排名。以下从几个关键维度梳理优化策略。</p><h2>资源加载优化</h2><ul><li><strong>代码分割</strong>：使用动态 import() 按需加载，减少首屏 JS 体积</li><li><strong>图片优化</strong>：使用 WebP 格式、响应式图片、懒加载</li><li><strong>字体优化</strong>：使用 font-display: swap，预加载关键字体</li></ul><h2>渲染优化</h2><ul><li>避免强制同步布局和布局抖动</li><li>使用 CSS contain 属性限制重排范围</li><li>虚拟列表处理长列表渲染</li></ul><h2>缓存策略</h2><p>合理配置 HTTP 缓存头（Cache-Control、ETag），利用 Service Worker 实现离线缓存。静态资源使用内容哈希命名，实现永久缓存。</p><blockquote>性能优化没有银弹。先用 Lighthouse 或 WebPageTest 测量，找到瓶颈再对症下药。</blockquote>" },
-    { id: 6, title: "Docker 容器化入门与实践", category: "后端", date: "2026-06-20", excerpt: "从 Docker 基础概念到多容器编排，快速掌握应用容器化的核心技能。", content: "<p>Docker 让应用及其依赖打包在轻量级容器中运行，解决了\"在我机器上能跑\"的经典问题。</p><h2>核心概念</h2><ul><li><strong>镜像（Image）</strong>：应用的静态模板，包含运行环境和代码</li><li><strong>容器（Container）</strong>：镜像的运行实例，彼此隔离</li><li><strong>Dockerfile</strong>：定义镜像构建步骤的脚本</li><li><strong>Docker Compose</strong>：管理多容器应用的工具</li></ul><h2>常用命令</h2><pre><code>docker build -t my-app .       # 构建镜像\ndocker run -d -p 3000:3000 my-app  # 运行容器\ndocker-compose up -d           # 启动多容器应用\ndocker ps                      # 查看运行中的容器</code></pre><blockquote>容器化不是银弹，但对于微服务架构和 CI/CD 流程来说，Docker 几乎已是标配。</blockquote>" }
-];
+const DEFAULT_ARTICLES = [];
 
 const DEFAULT_MOMENTS = [
-    { date: '2026-08-09', content: '周末重构了博客主题，纯黑深色风格真舒服。' },
-    { date: '2026-08-05', content: '今天学到了一个新技巧：用 CSS @container 做真正的响应式组件。' },
-    { date: '2026-08-01', content: '八月的第一天，开始系统学习 Rust，从 The Book 啃起。' },
-    { date: '2026-07-25', content: '读完了《设计模式》，对观察者模式和策略模式有了全新的理解。' },
-    { date: '2026-07-18', content: '把博客从 4 个页面扩展到了 9 个栏目，虽然工作量不小但架构清爽了很多。' },
-    { date: '2026-07-10', content: '在项目中引入了 Vitest，测试体验比 Jest 舒服太多了，强烈推荐。' },
-    { date: '2026-07-01', content: '下半年开始了，列了 5 个技术目标：Rust、WebGPU、分布式系统、LLM 原理、开源贡献。' },
+    { date: '2026-08-10', content: '最终还是放弃了线上修改并同步的路线，选择本地推送至仓库进行更新。' }
 ];
 
 const DEFAULT_GALLERY = [
-    { title: '东京街头', description: '', color: '#2d1b4e', url: '' },
-    { title: '日落海岸', description: '', color: '#1a3a4a', url: '' },
-    { title: '城市夜景', description: '', color: '#232038', url: '' },
-    { title: '秋叶小径', description: '', color: '#3d1f0f', url: '' },
-    { title: '雪山远眺', description: '', color: '#1e2e3d', url: '' },
-    { title: '咖啡馆一角', description: '', color: '#2a1f1a', url: '' },
+    { title: '【生活·2026】', url: '', color: '#2d1b4e' }
 ];
 
 const DEFAULT_COLLECTIONS = [
-    { name: 'JavaScript 系列', articleIds: [1, 3, 5] },
-    { name: 'Python 系列', articleIds: [2] },
-    { name: '工具系列', articleIds: [4, 6] },
+    { name: '思考.', articleIds: [] }
 ];
 
 const DEFAULT_TRADE_RECORDS = [
-    { id: 1,  date: '2026-08-07', type: '逆回购卖出', code: '131810', name: 'R-001',  amount: 20002.23, fee: 0.00 },
-    { id: 2,  date: '2026-08-06', type: '逆回购买入', code: '131810', name: 'R-001',  amount: 20000.00, fee: 0.20 },
-    { id: 3,  date: '2026-08-05', type: '逆回购卖出', code: '204001', name: 'GC001', amount: 5000.21,  fee: 0.00 },
-    { id: 4,  date: '2026-08-05', type: '逆回购卖出', code: '204001', name: 'GC001', amount: 5000.21,  fee: 0.00 },
-    { id: 5,  date: '2026-08-05', type: '逆回购卖出', code: '204001', name: 'GC001', amount: 10000.42, fee: 0.00 },
-    { id: 6,  date: '2026-08-04', type: '逆回购卖出', code: '204001', name: 'GC001', amount: 1000.04,  fee: 0.00 },
-    { id: 7,  date: '2026-08-04', type: '逆回购卖出', code: '204001', name: 'GC001', amount: 19000.77, fee: 0.00 },
-    { id: 8,  date: '2026-08-04', type: '逆回购买入', code: '204001', name: 'GC001', amount: 10000.00, fee: 0.10 },
-    { id: 9,  date: '2026-08-04', type: '逆回购买入', code: '204001', name: 'GC001', amount: 5000.00,  fee: 0.05 },
-    { id: 10, date: '2026-08-04', type: '逆回购买入', code: '204001', name: 'GC001', amount: 5000.00,  fee: 0.05 },
-    { id: 11, date: '2026-08-03', type: '逆回购买入', code: '204001', name: 'GC001', amount: 19000.00, fee: 0.19 },
-    { id: 12, date: '2026-08-03', type: '逆回购买入', code: '204001', name: 'GC001', amount: 1000.00,  fee: 0.01 },
+    { date: '2026-08-03', type: '逆回购买入', code: '', name: 'GC001', amount: 19000, fee: 0.19, id: 1 },
+    { date: '2026-08-03', type: '逆回购买入', code: '', name: 'GC001', amount: 1000, fee: 0.01, id: 2 },
+    { date: '2026-08-04', type: '逆回购卖出', code: '', name: 'GC001', amount: 1000.04, fee: 0, id: 3 },
+    { date: '2026-08-04', type: '逆回购卖出', code: '', name: 'GC001', amount: 19000.77, fee: 0, id: 4 },
+    { date: '2026-08-04', type: '逆回购买入', code: '', name: 'GC001', amount: 10000, fee: 0.1, id: 5 },
+    { date: '2026-08-04', type: '逆回购买入', code: '', name: 'GC001', amount: 5000, fee: 0.05, id: 6 },
+    { date: '2026-08-04', type: '逆回购买入', code: '', name: 'GC001', amount: 5000, fee: 0.05, id: 7 },
+    { date: '2026-08-05', type: '逆回购卖出', code: '', name: 'GC001', amount: 5000.21, fee: 0, id: 8 },
+    { date: '2026-08-05', type: '逆回购卖出', code: '', name: 'GC001', amount: 5000.21, fee: 0, id: 9 },
+    { date: '2026-08-05', type: '逆回购卖出', code: '', name: 'GC001', amount: 10000.42, fee: 0, id: 10 },
+    { date: '2026-08-06', type: '逆回购买入', code: '', name: 'R-001', amount: 20000, fee: 0.2, id: 11 },
+    { date: '2026-08-07', type: '逆回购卖出', code: '', name: 'R-001', amount: 20002.23, fee: 0, id: 12 }
 ];
 
 
