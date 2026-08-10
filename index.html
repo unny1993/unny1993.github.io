@@ -10,9 +10,9 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=20260810c">
+    <link rel="stylesheet" href="style.css?v=20260810d">
     <style>.bg-canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none}</style>
-    <script src="app.js?v=20260810c" defer></script>
+    <script src="app.js?v=20260810d" defer></script>
 </head>
 <body>
     <canvas class="bg-canvas" id="bg-canvas"></canvas>
@@ -25,7 +25,6 @@
                 <a href="#" class="nav-link" data-view="gallery">相册</a>
                 <a href="#" class="nav-link" data-view="collections">文集</a>
                 <a href="#" class="nav-link" data-view="data">数据</a>
-                <a href="#" class="nav-link" data-view="guestbook">留言</a>
                 <a href="#" class="nav-link" data-view="about">关于</a>
                 <a href="#" class="nav-link" data-view="admin">管理</a>
             </nav>
@@ -156,19 +155,6 @@
                             <span class="legend-item"><i class="legend-dot" style="background:#444444"></i>股票亏损</span>
                         </div>
                     </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- 7. Guestbook -->
-        <section id="view-guestbook" class="view">
-            <div class="section section-top">
-                <h2 class="section-label">留言</h2>
-                <div id="guestbook-messages" class="guestbook-messages"></div>
-                <div class="guestbook-form">
-                    <input type="text" class="gb-input gb-input-name" placeholder="昵称">
-                    <textarea class="gb-textarea" placeholder="写下你想说的话..." rows="4"></textarea>
-                    <button class="btn btn-primary gb-submit" id="gb-submit-btn" disabled>提交留言</button>
                 </div>
             </div>
         </section>

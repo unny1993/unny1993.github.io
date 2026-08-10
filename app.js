@@ -37,7 +37,6 @@ let articles = loadFromStorage('blog_articles', DEFAULT_ARTICLES);
 let moments = loadFromStorage('blog_moments', DEFAULT_MOMENTS);
 let galleryItems = loadFromStorage('blog_gallery', DEFAULT_GALLERY);
 let collections = loadFromStorage('blog_collections', DEFAULT_COLLECTIONS);
-let guestbookMessages = loadFromStorage('blog_guestbook', []);
 let tradeRecords = loadFromStorage('blog_trade_records', DEFAULT_TRADE_RECORDS);
 
 function initTradeRecords() {
@@ -154,7 +153,6 @@ const views = {
     gallery: document.getElementById('view-gallery'),
     collections: document.getElementById('view-collections'),
     data: document.getElementById('view-data'),
-    guestbook: document.getElementById('view-guestbook'),
     about: document.getElementById('view-about'),
     detail: document.getElementById('view-detail'),
     admin: document.getElementById('view-admin')
@@ -178,7 +176,6 @@ function switchView(viewName, data) {
         case 'articles': renderAllPosts(); break;
         case 'gallery': renderGallery(); break;
         case 'collections': renderCollections(); break;
-        case 'guestbook': renderGuestbook(); break;
         case 'detail': renderArticleDetail(data); break;
         case 'admin':
             if (!isLoggedIn()) {
@@ -272,46 +269,6 @@ function renderCollections() {
             '</div>';
     }).join('');
     bindPostClicks(container);
-}
-
-// ===== 渲染：留言板 =====
-function renderGuestbook() {
-    var container = document.getElementById('guestbook-messages');
-    container.innerHTML = guestbookMessages.map(function(msg) {
-        return '<div class="gb-message">' +
-            '<div class="gb-meta"><span class="gb-author">' + msg.author + '</span><span class="gb-time">' + msg.time + '</span></div>' +
-            '<p class="gb-body">' + msg.content + '</p>' +
-            '</div>';
-    }).join('');
-
-    var nameInput = document.querySelector('.gb-input-name');
-    var textarea = document.querySelector('.gb-textarea');
-    var submitBtn = document.getElementById('gb-submit-btn');
-
-    function checkForm() {
-        submitBtn.disabled = !(nameInput.value.trim() && textarea.value.trim());
-    }
-
-    nameInput.removeEventListener('input', checkForm);
-    textarea.removeEventListener('input', checkForm);
-    nameInput.addEventListener('input', checkForm);
-    textarea.addEventListener('input', checkForm);
-
-    submitBtn.replaceWith(submitBtn.cloneNode(true));
-    submitBtn = document.getElementById('gb-submit-btn');
-    submitBtn.addEventListener('click', function() {
-        var author = nameInput.value.trim();
-        var content = textarea.value.trim();
-        if (!author || !content) return;
-        var now = new Date();
-        var time = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0') + ' ' + String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
-        guestbookMessages.unshift({ author: author, time: time, content: content });
-        saveToStorage('blog_guestbook', guestbookMessages);
-        nameInput.value = '';
-        textarea.value = '';
-        submitBtn.disabled = true;
-        renderGuestbook();
-    });
 }
 
 // ==========================================
