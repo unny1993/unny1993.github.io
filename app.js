@@ -191,24 +191,43 @@ function ghLoadAllData() {
             var key = GH_KEY_BY_LABEL[r.label];
             if (!key) continue;
             if (r.data.length > 0) {
+                // 合并检查：读取当前 localStorage，Issues 中存在但 localStorage 中不存在的条目跳过不写回
+                var localRaw = localStorage.getItem(key);
+                var localItems = localRaw ? (function(){ try { return JSON.parse(localRaw); } catch(e){ return []; } })() : [];
+                var idKey = (key === 'blog_articles' || key === 'blog_trade_records') ? 'id'
+                           : (key === 'blog_moments') ? null
+                           : (key === 'blog_gallery') ? 'title'
+                           : (key === 'blog_collections') ? 'name' : 'id';
+                var merged = r.data.filter(function(issueItem) {
+                    if (localItems.length === 0) return true;
+                    if (idKey === null) {
+                        // moments: 用 date + content 匹配
+                        return localItems.some(function(l) {
+                            return l.date === issueItem.date && l.content === issueItem.content;
+                        });
+                    }
+                    return localItems.some(function(l) {
+                        return l[idKey] === issueItem[idKey];
+                    });
+                });
                 if (key === 'blog_articles') {
-                    articles = r.data;
-                    localStorage.setItem(key, JSON.stringify(articles));
+                    articles = merged;
+                    localStorage.setItem(key, JSON.stringify(merged));
                     changed = true;
                 } else if (key === 'blog_moments') {
-                    moments = r.data;
-                    localStorage.setItem(key, JSON.stringify(moments));
+                    moments = merged;
+                    localStorage.setItem(key, JSON.stringify(merged));
                     changed = true;
                 } else if (key === 'blog_gallery') {
-                    galleryItems = r.data;
+                    galleryItems = merged;
                     localStorage.setItem(key, JSON.stringify(galleryItems));
                     changed = true;
                 } else if (key === 'blog_collections') {
-                    collections = r.data;
+                    collections = merged;
                     localStorage.setItem(key, JSON.stringify(collections));
                     changed = true;
                 } else if (key === 'blog_trade_records') {
-                    tradeRecords = r.data;
+                    tradeRecords = merged;
                     localStorage.setItem(key, JSON.stringify(tradeRecords));
                     changed = true;
                 }
@@ -296,7 +315,7 @@ function ghSyncClose(issueNumber) {
     }).catch(function(err) {
         console.error('GitHub API 错误:', err);
         showSyncError('✗ 同步失败，请检查Token是否有效');
-        return null;
+        throw err;
     });
 }
 
@@ -752,11 +771,24 @@ function bindAdminArticleEvents() {
         btn.addEventListener('click', function() {
             var id = parseInt(btn.dataset.delArticle);
             var delArt = articles.find(function(a) { return a.id === id; });
-            articles = articles.filter(function(a) { return a.id !== id; });
-            saveToStorage('blog_articles', articles);
-            if (hasToken() && delArt && delArt._ghIssueNumber) { ghSyncClose(delArt._ghIssueNumber); }
-            renderAdminArticles();
-            renderAllPosts();
+            if (!delArt) return;
+
+            if (!hasToken() || !delArt._ghIssueNumber) {
+                if (!hasToken() && !confirm('未设置 GitHub Token，删除仅在本浏览器生效，刷新后可能恢复。确定删除吗？')) return;
+                if (!delArt._ghIssueNumber && !confirm('该文章缺少 GitHub Issue 关联，删除仅在本浏览器生效，刷新后可能恢复。确定删除吗？')) return;
+                articles = articles.filter(function(a) { return a.id !== id; });
+                saveToStorage('blog_articles', articles);
+                renderAdminArticles();
+                renderAllPosts();
+                return;
+            }
+
+            ghSyncClose(delArt._ghIssueNumber).then(function() {
+                articles = articles.filter(function(a) { return a.id !== id; });
+                saveToStorage('blog_articles', articles);
+                renderAdminArticles();
+                renderAllPosts();
+            }).catch(function() {});
         });
     });
 }
