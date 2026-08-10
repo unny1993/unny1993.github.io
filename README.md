@@ -15,6 +15,7 @@ git push origin main
 > 不要用 `git add -A`：仓库根目录的 `.workbuddy/`（WorkBuddy 工具记忆目录）已在 `.gitignore` 忽略，精准 add 上面列出的文件即可，避免误提交工具数据。
 
 ## 备份（推送成功后必做）
+> **已配置 post-commit 钩子自动执行**：每次 `git commit` 后自动完成下面的 bundle + 同步两步，无需手动。也可手动运行 `bash backup.sh`（一键推送用 `bash backup.sh push`）。
 ```bash
 # 1) 离线 bundle 兜底（不在任何同步盘内）
 git bundle create C:\Users\a1324\backup\blog-push-$(date +%Y%m%d).bundle --all
