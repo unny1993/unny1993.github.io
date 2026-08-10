@@ -159,6 +159,7 @@ function ghFetchByLabel(label) {
     return fetch(GH_API_BASE + '/issues?labels=' + label + '&state=open&per_page=100', {
         headers: { 'Accept': 'application/vnd.github.v3+json' }
     }).then(function(res) {
+        if (res.status === 403) return { _blocked: true };
         if (!res.ok) throw new Error('GitHub API ' + res.status);
         return res.json();
     }).catch(function(err) {
@@ -172,6 +173,7 @@ function ghLoadAllData() {
     var labels = ['article', 'moment', 'album', 'collection', 'trade'];
     return Promise.all(labels.map(function(label) {
         return ghFetchByLabel(label).then(function(issues) {
+            if (issues && issues._blocked) return { label: label, data: [], _blocked: true };
             if (!issues || !issues.length) return { label: label, data: [] };
             var parsed = [];
             for (var i = 0; i < issues.length; i++) {
@@ -184,6 +186,13 @@ function ghLoadAllData() {
             return { label: label, data: parsed };
         });
     })).then(function(results) {
+        // 如果所有 label 都被 403 阻塞，跳过合并，保持 localStorage 不变
+        var allBlocked = results.length > 0 && results.every(function(r) { return r._blocked; });
+        if (allBlocked) {
+            showSyncBlocked(true);
+            return;
+        }
+        showSyncBlocked(false);
         var changed = false;
         for (var i = 0; i < results.length; i++) {
             var r = results[i];
@@ -277,6 +286,14 @@ function ghLoadAllData() {
             renderCurrentView();
         }
     });
+}
+
+// ===== 同步状态提示 =====
+function showSyncBlocked(blocked) {
+    var el = document.getElementById('sync-status');
+    if (el) {
+        el.style.display = blocked ? 'flex' : 'none';
+    }
 }
 
 function renderCurrentView() {
