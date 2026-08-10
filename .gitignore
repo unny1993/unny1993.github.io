@@ -3,3 +3,5 @@
 Thumbs.db
 .workbuddy/
 backup.sh
+update-data.py
+update-data.sh
