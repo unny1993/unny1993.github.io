@@ -11,6 +11,7 @@ function loadFromStorage(key, defaults) {
     if (stored) {
         try { return JSON.parse(stored); } catch (e) {}
     }
+    localStorage.setItem(key, JSON.stringify(defaults));
     return JSON.parse(JSON.stringify(defaults));
 }
 
