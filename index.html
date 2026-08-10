@@ -10,9 +10,9 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=20260810h">
+    <link rel="stylesheet" href="style.css?v=20260810j">
     <style>.bg-canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none}</style>
-    <script src="app.js?v=20260810h" defer></script>
+    <script src="app.js?v=20260810k" defer></script>
 </head>
 <body>
     <canvas class="bg-canvas" id="bg-canvas"></canvas>
@@ -78,6 +78,14 @@
             <div class="section section-top">
                 <h2 class="section-label">相册</h2>
                 <div id="gallery-grid" class="gallery-grid"></div>
+            </div>
+            <div class="gallery-lightbox" id="gallery-lightbox">
+                <span class="lightbox-close" id="lightbox-close">&times;</span>
+                <button class="lightbox-nav lightbox-prev" id="lightbox-prev">&#8592;</button>
+                <img class="lightbox-img" id="lightbox-img" src="" alt="">
+                <button class="lightbox-nav lightbox-next" id="lightbox-next">&#8594;</button>
+                <div class="lightbox-caption" id="lightbox-caption"></div>
+                <div class="lightbox-count" id="lightbox-count"></div>
             </div>
         </section>
 
@@ -200,7 +208,9 @@
                     <button class="admin-tab" data-admin-tab="trades">交易记录</button>
                 </div>
                 <div class="admin-header-right">
-                    <button class="admin-pwd-btn" id="admin-export-data">导出数据</button>
+                    <button class="admin-pwd-btn" id="admin-export-data">导出文件</button>
+                    <button class="admin-pwd-btn" id="admin-import-data">导入文件</button>
+                    <input type="file" id="admin-import-file" accept="application/json,.json" style="display:none">
                     <button class="admin-pwd-btn" id="admin-change-pwd">修改密码</button>
                 </div>
 
@@ -215,7 +225,27 @@
                         </select>
                         <input type="date" class="admin-input" id="admin-article-date">
                         <input type="text" class="admin-input" id="admin-article-excerpt" placeholder="摘要">
-                        <textarea class="admin-textarea" id="admin-article-content" placeholder="正文 (HTML)" rows="8"></textarea>
+                        <div class="rte-toolbar" id="rte-toolbar">
+                            <button type="button" class="rte-btn" data-cmd="bold" title="加粗"><b>B</b></button>
+                            <button type="button" class="rte-btn" data-cmd="italic" title="斜体"><i>I</i></button>
+                            <button type="button" class="rte-btn" data-cmd="underline" title="下划线"><u>U</u></button>
+                            <span class="rte-sep"></span>
+                            <button type="button" class="rte-btn" data-block="h2" title="标题 2">H2</button>
+                            <button type="button" class="rte-btn" data-block="h3" title="标题 3">H3</button>
+                            <button type="button" class="rte-btn" data-block="p" title="正文段落">¶</button>
+                            <span class="rte-sep"></span>
+                            <button type="button" class="rte-btn" data-cmd="insertUnorderedList" title="无序列表">• 列表</button>
+                            <button type="button" class="rte-btn" data-cmd="insertOrderedList" title="有序列表">1. 列表</button>
+                            <button type="button" class="rte-btn" data-block="blockquote" title="引用">引用</button>
+                            <span class="rte-sep"></span>
+                            <button type="button" class="rte-btn" data-inline="code" title="行内代码">&lt;/&gt; 代码</button>
+                            <button type="button" class="rte-btn" data-block="pre" title="代码块">{ } 代码块</button>
+                            <button type="button" class="rte-btn" data-cmd="createLink" title="插入链接">链接</button>
+                            <button type="button" class="rte-btn" data-cmd="insertHorizontalRule" title="分割线">分割线</button>
+                            <span class="rte-sep"></span>
+                            <button type="button" class="rte-btn" data-cmd="removeFormat" title="清除格式">清除</button>
+                        </div>
+                        <div class="rte-editor article-body" id="admin-article-content" contenteditable="true" data-placeholder="写点什么…支持加粗、标题、列表、引用、代码、链接"></div>
                         <div style="display:flex;gap:12px;">
                             <button class="btn btn-primary" id="admin-article-submit">添加文章</button>
                             <button class="btn btn-secondary" id="admin-article-cancel" style="display:none;">取消编辑</button>
@@ -239,21 +269,27 @@
 
                 <!-- 相册管理 -->
                 <div class="admin-panel" id="admin-panel-gallery">
-                    <h3 id="admin-gallery-form-title">新增相册项</h3>
-                    <div class="admin-form">
-                        <input type="hidden" id="admin-edit-gallery-index" value="">
-                        <input type="text" class="admin-input" id="admin-gallery-title" placeholder="标题">
-                        <input type="text" class="admin-input" id="admin-gallery-desc" placeholder="描述（可选）">
-                        <input type="text" class="admin-input" id="admin-gallery-url" placeholder="图片相对路径（如 images/photo.jpg，可选）">
-                        <div style="display:flex;align-items:center;gap:8px;">
-                            <label style="font-size:14px;color:var(--text-secondary);">备用色块（无图片时使用）</label>
-                            <input type="color" class="admin-color-input" id="admin-gallery-color" value="#2d1b4e">
-                        </div>
-                        <div style="display:flex;gap:12px;">
-                            <button class="btn btn-primary" id="admin-gallery-submit">添加</button>
-                            <button class="btn btn-secondary" id="admin-gallery-cancel" style="display:none;">取消编辑</button>
-                        </div>
+                    <h3>相册管理</h3>
+                    <div class="admin-form-row">
+                        <input type="text" class="admin-input" id="admin-new-album-name" placeholder="新相册名称（如 旅行·2026）">
+                        <button class="btn btn-primary" id="admin-album-create">新建相册</button>
                     </div>
+                    <div class="admin-form-row admin-album-select-row">
+                        <label class="admin-label">选择相册</label>
+                        <select class="admin-select" id="admin-album-select"></select>
+                        <button class="btn btn-danger" id="admin-album-delete">删除相册</button>
+                    </div>
+
+                    <h3>上传照片到「<span id="admin-current-album-name">—</span>」</h3>
+                    <div class="admin-form-row">
+                        <input type="file" id="admin-photo-file" class="admin-file-input" accept="image/*" multiple>
+                    </div>
+                    <div id="admin-pending-photos" class="admin-pending-photos"></div>
+                    <div class="admin-form-row">
+                        <button class="btn btn-primary" id="admin-photo-add" disabled>添加到相册</button>
+                        <button class="btn btn-secondary" id="admin-photo-clear" disabled>清空</button>
+                    </div>
+
                     <h3>相册列表</h3>
                     <div class="admin-list" id="admin-gallery-list"></div>
                 </div>
@@ -306,7 +342,6 @@
     <footer class="site-footer">
     </footer>
 
-    <script src="app.js?v=20260810"></script>
     <script>
 (function() {
     var canvas = document.getElementById('hero-canvas');

@@ -27,7 +27,7 @@ const DEFAULT_MOMENTS = [
 ];
 
 const DEFAULT_GALLERY = [
-    { title: '【生活·2026】', url: '', color: '#2d1b4e' }
+    { id: 'album-life-2026', name: '【生活·2026】', cover: '', photos: [] }
 ];
 
 const DEFAULT_COLLECTIONS = [
@@ -50,7 +50,7 @@ const DEFAULT_TRADE_RECORDS = [
 ];
 
 // ===== 数据版本控制 =====
-const DATA_VERSION = 1;
+const DATA_VERSION = 2;
 
 (function checkDataVersion() {
     var storedVer = localStorage.getItem('blog_data_version');
@@ -80,6 +80,7 @@ function renderCurrentView() {
 let articles = loadFromStorage('blog_articles', DEFAULT_ARTICLES);
 let moments = loadFromStorage('blog_moments', DEFAULT_MOMENTS);
 let galleryItems = loadFromStorage('blog_gallery', DEFAULT_GALLERY);
+let currentAlbumId = null;
 let collections = loadFromStorage('blog_collections', DEFAULT_COLLECTIONS);
 let tradeRecords = loadFromStorage('blog_trade_records', DEFAULT_TRADE_RECORDS);
 
@@ -222,7 +223,7 @@ function switchView(viewName, data) {
     switch (viewName) {
         case 'moments': renderMoments(); break;
         case 'articles': renderAllPosts(); break;
-        case 'gallery': renderGallery(); break;
+        case 'gallery': currentAlbumId = null; renderGallery(); break;
         case 'collections': renderCollections(); break;
         case 'detail': renderArticleDetail(data); break;
         case 'admin':
@@ -295,20 +296,89 @@ function renderMoments() {
 }
 
 // ===== 渲染：相册 =====
+function genId(prefix) {
+    return (prefix || 'id') + '-' + Date.now().toString(36) + '-' + Math.floor(Math.random() * 1e6).toString(36);
+}
+
 function renderGallery() {
     var container = document.getElementById('gallery-grid');
-    container.innerHTML = galleryItems.map(function(item) {
-        if (item.url) {
-            return '<div class="gallery-item">' +
-                '<img src="' + item.url + '" alt="' + item.title + '" loading="lazy" class="gallery-img">' +
-                '<div class="gallery-overlay">' +
-                '<div class="gallery-item-title">' + item.title + '</div>' +
-                (item.description ? '<div class="gallery-item-desc">' + item.description + '</div>' : '') +
-                '</div></div>';
-        } else {
-            return '<div class="gallery-item" style="background:' + item.color + ';min-height:200px;"><div class="gallery-item-title">' + item.title + '</div></div>';
+    if (currentAlbumId === null) {
+        // 相册列表
+        if (galleryItems.length === 0) {
+            container.innerHTML = '<p class="empty-hint">还没有相册，去后台新建一个吧。</p>';
+            return;
         }
-    }).join('');
+        container.innerHTML = galleryItems.map(function(album) {
+            var cover = album.cover || (album.photos[0] && album.photos[0].url) || '';
+            var coverHtml = cover
+                ? '<img src="' + cover + '" alt="" class="gallery-img">'
+                : '<div class="gallery-item-placeholder">📷</div>';
+            return '<div class="gallery-item album-card" data-album="' + album.id + '">' +
+                coverHtml +
+                '<div class="gallery-overlay"><div class="gallery-item-title">' + album.name + '</div>' +
+                '<div class="gallery-item-desc">' + album.photos.length + ' 张</div></div>' +
+                '</div>';
+        }).join('');
+        container.querySelectorAll('.album-card').forEach(function(card) {
+            card.addEventListener('click', function() {
+                currentAlbumId = card.dataset.album;
+                renderGallery();
+            });
+        });
+        return;
+    }
+    // 相册详情：照片网格
+    var album = galleryItems.find(function(a) { return a.id === currentAlbumId; });
+    if (!album) { currentAlbumId = null; renderGallery(); return; }
+    var back = '<div class="gallery-back" data-back>&#8592; 返回相册</div>';
+    if (album.photos.length === 0) {
+        container.innerHTML = back + '<p class="empty-hint">这个相册还没有照片。</p>';
+    } else {
+        container.innerHTML = back + album.photos.map(function(p, i) {
+            return '<div class="gallery-item" data-photo="' + i + '">' +
+                '<img src="' + p.url + '" alt="' + (p.title || '') + '" loading="lazy" class="gallery-img">' +
+                (p.title || p.description ? '<div class="gallery-overlay"><div class="gallery-item-title">' + (p.title || '') + '</div>' + (p.description ? '<div class="gallery-item-desc">' + p.description + '</div>' : '') + '</div>' : '') +
+                '</div>';
+        }).join('');
+        container.querySelectorAll('.gallery-item[data-photo]').forEach(function(card) {
+            card.addEventListener('click', function() { openLightbox(album, parseInt(card.dataset.photo)); });
+        });
+    }
+    container.querySelector('[data-back]').addEventListener('click', function() {
+        currentAlbumId = null;
+        renderGallery();
+    });
+}
+
+// ===== 灯箱（照片放大查看） =====
+let lightboxAlbum = null;
+let lightboxIndex = 0;
+
+function openLightbox(album, index) {
+    lightboxAlbum = album;
+    lightboxIndex = index;
+    renderLightbox();
+    document.getElementById('gallery-lightbox').classList.add('active');
+}
+
+function renderLightbox() {
+    if (!lightboxAlbum) return;
+    var p = lightboxAlbum.photos[lightboxIndex];
+    var box = document.getElementById('gallery-lightbox');
+    box.querySelector('.lightbox-img').src = p.url;
+    box.querySelector('.lightbox-caption').textContent = (p.title || '') + (p.description ? ' — ' + p.description : '');
+    box.querySelector('.lightbox-count').textContent = (lightboxIndex + 1) + ' / ' + lightboxAlbum.photos.length;
+}
+
+function closeLightbox() {
+    document.getElementById('gallery-lightbox').classList.remove('active');
+    lightboxAlbum = null;
+}
+
+function lightboxNav(dir) {
+    if (!lightboxAlbum) return;
+    lightboxIndex = (lightboxIndex + dir + lightboxAlbum.photos.length) % lightboxAlbum.photos.length;
+    renderLightbox();
 }
 
 // ===== 渲染：文集 =====
@@ -385,7 +455,7 @@ function bindAdminArticleEvents() {
             document.getElementById('admin-article-category').value = a.category;
             document.getElementById('admin-article-date').value = a.date;
             document.getElementById('admin-article-excerpt').value = a.excerpt;
-            document.getElementById('admin-article-content').value = a.content;
+            document.getElementById('admin-article-content').innerHTML = a.content || '';
             document.getElementById('admin-article-submit').textContent = '更新文章';
             document.getElementById('admin-article-cancel').style.display = 'inline-flex';
         });
@@ -411,7 +481,9 @@ document.getElementById('admin-article-submit').addEventListener('click', functi
     var category = document.getElementById('admin-article-category').value;
     var date = document.getElementById('admin-article-date').value;
     var excerpt = document.getElementById('admin-article-excerpt').value.trim();
-    var content = document.getElementById('admin-article-content').value.trim();
+    var editorEl = document.getElementById('admin-article-content');
+    var content = (editorEl.innerHTML || '').trim();
+    if (content === '<br>') content = '';
     if (!title || !date) return;
 
     if (editingArticleId) {
@@ -439,7 +511,7 @@ function cancelEditArticle() {
     document.getElementById('admin-article-category').value = collections.length ? collections[0].name : '';
     document.getElementById('admin-article-date').value = '';
     document.getElementById('admin-article-excerpt').value = '';
-    document.getElementById('admin-article-content').value = '';
+    document.getElementById('admin-article-content').innerHTML = '';
     document.getElementById('admin-article-submit').textContent = '添加文章';
     document.getElementById('admin-article-cancel').style.display = 'none';
 }
@@ -487,90 +559,179 @@ document.getElementById('admin-moment-submit').addEventListener('click', functio
     renderMoments();
 });
 
-// ---- 管理：相册 ----
+// ---- 管理：相册（相册分组 + 照片上传） ----
+let pendingPhotos = [];
+
+function renderAdminAlbumSelect() {
+    var sel = document.getElementById('admin-album-select');
+    if (!sel) return;
+    sel.innerHTML = galleryItems.map(function(a) {
+        return '<option value="' + a.id + '">' + a.name + ' (' + a.photos.length + ')</option>';
+    }).join('');
+    updateCurrentAlbumName();
+}
+
+function updateCurrentAlbumName() {
+    var sel = document.getElementById('admin-album-select');
+    var nameEl = document.getElementById('admin-current-album-name');
+    if (!sel || !nameEl) return;
+    var album = galleryItems.find(function(a) { return a.id === sel.value; });
+    nameEl.textContent = album ? album.name : '—';
+}
+
+function getCurrentAdminAlbum() {
+    var sel = document.getElementById('admin-album-select');
+    return galleryItems.find(function(a) { return a.id === sel.value; });
+}
+
 function renderAdminGallery() {
+    renderAdminAlbumSelect();
     var list = document.getElementById('admin-gallery-list');
-    list.innerHTML = galleryItems.map(function(item, i) {
-        var thumbHtml = '';
-        if (item.url) {
-            thumbHtml = '<img src="' + item.url + '" class="admin-gallery-thumb" alt="">';
-        } else {
-            thumbHtml = '<div class="admin-gallery-thumb" style="background:' + item.color + ';"></div>';
-        }
-        return '<div class="admin-item">' +
-            '<div class="admin-item-info admin-gallery-info">' +
-            thumbHtml +
-            '<div>' +
-            '<div class="admin-item-title">' + item.title + '</div>' +
-            '<div class="admin-item-meta">' + (item.description || '无描述') + ' | ' + (item.url ? '图片' : '纯色块') + '</div>' +
-            '</div>' +
-            '</div>' +
-            '<div class="admin-item-actions">' +
-            '<button class="admin-btn-sm admin-btn-edit" data-edit-gallery="' + i + '">编辑</button>' +
-            '<button class="admin-btn-sm admin-btn-del" data-del-gallery="' + i + '">删除</button>' +
-            '</div>' +
+    if (galleryItems.length === 0) {
+        list.innerHTML = '<p class="empty-hint">暂无相册。先在上方新建一个相册。</p>';
+        return;
+    }
+    list.innerHTML = galleryItems.map(function(album) {
+        var photosHtml = album.photos.map(function(p, i) {
+            return '<div class="admin-gallery-photo">' +
+                '<img src="' + p.url + '" class="admin-gallery-thumb" alt="">' +
+                '<button class="admin-photo-del" data-album="' + album.id + '" data-photo="' + i + '" title="删除">&times;</button>' +
+                '</div>';
+        }).join('');
+        return '<div class="admin-item admin-album-item">' +
+            '<div class="admin-item-info"><div class="admin-item-title">' + album.name +
+            ' <span class="admin-item-meta">(' + album.photos.length + ' 张)</span></div></div>' +
+            '<div class="admin-album-photos">' + (photosHtml || '<span class="admin-item-meta">空相册</span>') + '</div>' +
             '</div>';
     }).join('');
 
-    document.querySelectorAll('[data-edit-gallery]').forEach(function(btn) {
+    list.querySelectorAll('.admin-photo-del').forEach(function(btn) {
         btn.addEventListener('click', function() {
-            var i = parseInt(btn.dataset.editGallery);
-            var item = galleryItems[i];
-            editingGalleryIndex = i;
-            document.getElementById('admin-gallery-form-title').textContent = '编辑相册项';
-            document.getElementById('admin-edit-gallery-index').value = i;
-            document.getElementById('admin-gallery-title').value = item.title;
-            document.getElementById('admin-gallery-desc').value = item.description || '';
-            document.getElementById('admin-gallery-color').value = item.color;
-            document.getElementById('admin-gallery-submit').textContent = '更新';
-            document.getElementById('admin-gallery-cancel').style.display = 'inline-flex';
-            document.getElementById('admin-gallery-url').value = item.url || '';
-        });
-    });
-
-    document.querySelectorAll('[data-del-gallery]').forEach(function(btn) {
-        btn.addEventListener('click', function() {
-            var i = parseInt(btn.dataset.delGallery);
-            galleryItems.splice(i, 1);
+            var album = galleryItems.find(function(a) { return a.id === btn.dataset.album; });
+            if (!album) return;
+            album.photos.splice(parseInt(btn.dataset.photo), 1);
             saveToStorage('blog_gallery', galleryItems);
-
             renderAdminGallery();
             renderGallery();
         });
     });
 }
 
-document.getElementById('admin-gallery-submit').addEventListener('click', function() {
-    var title = document.getElementById('admin-gallery-title').value.trim();
-    var description = document.getElementById('admin-gallery-desc').value.trim();
-    var color = document.getElementById('admin-gallery-color').value;
-    var url = document.getElementById('admin-gallery-url').value.trim();
-    if (!title) return;
-
-    if (editingGalleryIndex !== null) {
-        galleryItems[editingGalleryIndex] = { title: title, description: description, color: color, url: url };
-    } else {
-        galleryItems.push({ title: title, description: description, color: color, url: url });
-    }
+// 新建相册
+document.getElementById('admin-album-create').addEventListener('click', function() {
+    var name = document.getElementById('admin-new-album-name').value.trim();
+    if (!name) return;
+    galleryItems.push({ id: genId('album'), name: name, cover: '', photos: [] });
     saveToStorage('blog_gallery', galleryItems);
-    cancelEditGallery();
+    document.getElementById('admin-new-album-name').value = '';
     renderAdminGallery();
     renderGallery();
 });
 
-document.getElementById('admin-gallery-cancel').addEventListener('click', cancelEditGallery);
+// 删除相册
+document.getElementById('admin-album-delete').addEventListener('click', function() {
+    var album = getCurrentAdminAlbum();
+    if (!album) return;
+    if (!confirm('确定删除相册「' + album.name + '」及其所有照片？')) return;
+    galleryItems = galleryItems.filter(function(a) { return a.id !== album.id; });
+    saveToStorage('blog_gallery', galleryItems);
+    renderAdminGallery();
+    renderGallery();
+});
 
-function cancelEditGallery() {
-    editingGalleryIndex = null;
-    document.getElementById('admin-gallery-form-title').textContent = '新增相册项';
-    document.getElementById('admin-edit-gallery-index').value = '';
-    document.getElementById('admin-gallery-title').value = '';
-    document.getElementById('admin-gallery-desc').value = '';
-    document.getElementById('admin-gallery-url').value = '';
-    document.getElementById('admin-gallery-color').value = '#2d1b4e';
-    document.getElementById('admin-gallery-submit').textContent = '添加';
-    document.getElementById('admin-gallery-cancel').style.display = 'none';
+// 相册下拉变化
+document.getElementById('admin-album-select').addEventListener('change', updateCurrentAlbumName);
+
+// 文件选择 -> 预览
+document.getElementById('admin-photo-file').addEventListener('change', function(e) {
+    var files = Array.prototype.slice.call(e.target.files || []);
+    if (!files.length) return;
+    files.forEach(function(file) {
+        if (!file.type || !file.type.startsWith('image/')) return;
+        var reader = new FileReader();
+        reader.onload = function(ev) {
+            pendingPhotos.push({
+                title: file.name.replace(/\.[^.]+$/, ''),
+                description: '',
+                url: ev.target.result
+            });
+            renderPendingPhotos();
+        };
+        reader.readAsDataURL(file);
+    });
+    e.target.value = '';
+});
+
+function renderPendingPhotos() {
+    var box = document.getElementById('admin-pending-photos');
+    var addBtn = document.getElementById('admin-photo-add');
+    var clearBtn = document.getElementById('admin-photo-clear');
+    if (pendingPhotos.length === 0) {
+        box.innerHTML = '';
+        addBtn.disabled = true;
+        clearBtn.disabled = true;
+        return;
+    }
+    addBtn.disabled = false;
+    clearBtn.disabled = false;
+    box.innerHTML = pendingPhotos.map(function(p, i) {
+        return '<div class="pending-photo">' +
+            '<img src="' + p.url + '" class="pending-thumb" alt="">' +
+            '<div class="pending-fields">' +
+            '<input type="text" class="admin-input pending-title" data-i="' + i + '" placeholder="标题（可选）" value="' + (p.title || '') + '">' +
+            '<input type="text" class="admin-input pending-desc" data-i="' + i + '" placeholder="描述（可选）" value="' + (p.description || '') + '">' +
+            '</div>' +
+            '<button class="admin-btn-sm admin-btn-del pending-remove" data-i="' + i + '">移除</button>' +
+            '</div>';
+    }).join('');
+    box.querySelectorAll('.pending-title').forEach(function(inp) {
+        inp.addEventListener('input', function() { pendingPhotos[+inp.dataset.i].title = inp.value; });
+    });
+    box.querySelectorAll('.pending-desc').forEach(function(inp) {
+        inp.addEventListener('input', function() { pendingPhotos[+inp.dataset.i].description = inp.value; });
+    });
+    box.querySelectorAll('.pending-remove').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            pendingPhotos.splice(+btn.dataset.i, 1);
+            renderPendingPhotos();
+        });
+    });
 }
+
+document.getElementById('admin-photo-clear').addEventListener('click', function() {
+    pendingPhotos = [];
+    renderPendingPhotos();
+});
+
+document.getElementById('admin-photo-add').addEventListener('click', function() {
+    var album = getCurrentAdminAlbum();
+    if (!album) { alert('请先选择或新建一个相册'); return; }
+    if (pendingPhotos.length === 0) return;
+    pendingPhotos.forEach(function(p) {
+        album.photos.push({ id: genId('photo'), title: p.title, description: p.description, url: p.url });
+    });
+    saveToStorage('blog_gallery', galleryItems);
+    pendingPhotos = [];
+    renderPendingPhotos();
+    renderAdminGallery();
+    renderGallery();
+});
+
+// 灯箱交互
+(function initLightbox() {
+    var box = document.getElementById('gallery-lightbox');
+    if (!box) return;
+    document.getElementById('lightbox-close').addEventListener('click', closeLightbox);
+    document.getElementById('lightbox-prev').addEventListener('click', function(e) { e.stopPropagation(); lightboxNav(-1); });
+    document.getElementById('lightbox-next').addEventListener('click', function(e) { e.stopPropagation(); lightboxNav(1); });
+    box.addEventListener('click', function(e) { if (e.target === box) closeLightbox(); });
+    document.addEventListener('keydown', function(e) {
+        if (!box.classList.contains('active')) return;
+        if (e.key === 'Escape') closeLightbox();
+        else if (e.key === 'ArrowLeft') lightboxNav(-1);
+        else if (e.key === 'ArrowRight') lightboxNav(1);
+    });
+})();
 
 // ---- 管理：文集 ----
 function renderAdminCollections() {
@@ -824,8 +985,75 @@ document.addEventListener('keydown', function(e) {
     }
 });
 
-// ===== 导出数据到剪贴板 =====
-function exportDataToClipboard() {
+// ===== 富文本编辑器工具栏 =====
+function rteWrapInline(tag) {
+    var sel = window.getSelection();
+    if (!sel.rangeCount) return;
+    var range = sel.getRangeAt(0);
+    if (range.collapsed) return;
+    var text = range.toString();
+    var el = document.createElement(tag);
+    el.textContent = text;
+    range.deleteContents();
+    range.insertNode(el);
+    sel.removeAllRanges();
+    var r = document.createRange();
+    r.selectNodeContents(el);
+    sel.addRange(r);
+}
+
+function rteInsertNodeAtCursor(node) {
+    var sel = window.getSelection();
+    if (!sel.rangeCount) return;
+    var range = sel.getRangeAt(0);
+    range.deleteContents();
+    range.insertNode(node);
+    range.setStartAfter(node);
+    range.collapse(true);
+    sel.removeAllRanges();
+    sel.addRange(range);
+}
+
+function rteHandleLink() {
+    var url = prompt('输入链接地址 (以 http(s):// 开头)：');
+    if (!url) return;
+    var sel = window.getSelection();
+    if (sel && sel.rangeCount && !sel.getRangeAt(0).collapsed) {
+        document.execCommand('createLink', false, url);
+    } else {
+        var a = document.createElement('a');
+        a.href = url;
+        a.target = '_blank';
+        a.rel = 'noopener';
+        a.textContent = url;
+        rteInsertNodeAtCursor(a);
+    }
+}
+
+(function initRichTextEditor() {
+    var toolbar = document.getElementById('rte-toolbar');
+    if (!toolbar) return;
+    toolbar.addEventListener('mousedown', function(e) {
+        var btn = e.target.closest('.rte-btn');
+        if (!btn) return;
+        e.preventDefault();
+        var cmd = btn.dataset.cmd;
+        var block = btn.dataset.block;
+        var inline = btn.dataset.inline;
+        if (cmd === 'createLink') { rteHandleLink(); return; }
+        if (cmd === 'insertHorizontalRule') { document.execCommand('insertHorizontalRule'); return; }
+        if (cmd) {
+            document.execCommand(cmd, false, null);
+        } else if (block) {
+            document.execCommand('formatBlock', false, '<' + block + '>');
+        } else if (inline) {
+            rteWrapInline(inline);
+        }
+    });
+})();
+
+// ===== 导出数据到文件 =====
+function exportDataToFile() {
     var data = {
         blog_articles: JSON.parse(localStorage.getItem('blog_articles') || '[]'),
         blog_moments: JSON.parse(localStorage.getItem('blog_moments') || '[]'),
@@ -834,18 +1062,47 @@ function exportDataToClipboard() {
         blog_trade_records: JSON.parse(localStorage.getItem('blog_trade_records') || '[]')
     };
     var jsonStr = JSON.stringify(data, null, 2);
+    var blob = new Blob([jsonStr], { type: 'application/json' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'blog-data.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
     var btn = document.getElementById('admin-export-data');
-    navigator.clipboard.writeText(jsonStr).then(function() {
-        if (btn) {
-            btn.textContent = '已复制';
-            setTimeout(function() { btn.textContent = '导出数据'; }, 1500);
+    if (btn) {
+        btn.textContent = '已导出';
+        setTimeout(function() { btn.textContent = '导出文件'; }, 1500);
+    }
+}
+
+// ===== 从文件导入数据 =====
+function importDataFromFile(file) {
+    var reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            var data = JSON.parse(e.target.result);
+            var keys = ['blog_articles', 'blog_moments', 'blog_gallery', 'blog_collections', 'blog_trade_records'];
+            var imported = 0;
+            keys.forEach(function(k) {
+                if (data[k] !== undefined) {
+                    localStorage.setItem(k, JSON.stringify(data[k]));
+                    imported++;
+                }
+            });
+            if (imported === 0) {
+                alert('导入失败：文件中未找到任何博客数据字段');
+                return;
+            }
+            alert('导入成功（' + imported + ' 类数据），页面将刷新以加载新数据');
+            location.reload();
+        } catch (err) {
+            alert('导入失败：文件不是有效的 blog-data.json');
         }
-    }).catch(function() {
-        if (btn) {
-            btn.textContent = '复制失败';
-            setTimeout(function() { btn.textContent = '导出数据'; }, 1500);
-        }
-    });
+    };
+    reader.readAsText(file);
 }
 
 // ===== 登录事件绑定（DOMContentLoaded 确保元素就绪）=====
@@ -869,7 +1126,19 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     if (adminPwdBtn) adminPwdBtn.addEventListener('click', showPwdModal);
-    if (adminExportBtn) adminExportBtn.addEventListener('click', exportDataToClipboard);
+    if (adminExportBtn) adminExportBtn.addEventListener('click', exportDataToFile);
+
+    var adminImportBtn = document.getElementById('admin-import-data');
+    var adminImportFile = document.getElementById('admin-import-file');
+    if (adminImportBtn && adminImportFile) {
+        adminImportBtn.addEventListener('click', function() { adminImportFile.click(); });
+        adminImportFile.addEventListener('change', function() {
+            if (this.files && this.files[0]) {
+                importDataFromFile(this.files[0]);
+            }
+            this.value = '';
+        });
+    }
     if (pwdSubmit) pwdSubmit.addEventListener('click', doChangePwd);
     if (pwdCancel) pwdCancel.addEventListener('click', hidePwdModal);
     if (pwdModal) pwdModal.addEventListener('click', function(e) {
