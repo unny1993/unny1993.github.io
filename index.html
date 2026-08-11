@@ -741,7 +741,8 @@
                     allBuys += (r.amount || 0);
                 } else {
                     if (!sellQueues[c]) sellQueues[c] = [];
-                    sellQueues[c].push({ date: r.date, amount: r.amount || 0, type: r.type });
+                    sellQueues[c].push({ date: r.date, amount: r.amount || 0, fee: r.fee || 0, type: r.type });
+                    totalFee += (r.fee || 0);
                 }
             });
 
@@ -764,8 +765,8 @@
                 while (bi < buys.length && si < sells.length) {
                     var buy = buys[bi];
                     var sell = sells[si];
-                    // Pair this buy with this sell
-                    var net = sell.amount - buy.amount - buy.fee;
+                    // Pair this buy with this sell (盈亏 = 卖出金额 - 买入金额 - 买费 - 卖费)
+                    var net = sell.amount - buy.amount - buy.fee - (sell.fee || 0);
                     totalNet += net;
                     codeNet += net;
 
