@@ -142,7 +142,7 @@
                         <div class="chart-canvas-wrap">
                             <canvas id="profit-curve-canvas"></canvas>
                         </div>
-                        <p class="chart-note">注释：逐日累计净盈亏（利息-费用），08-03至08-07共5天，期末净盈利¥3.53。</p>
+                        <p class="chart-note" id="profit-curve-note"></p>
                     </div>
                     <div class="chart-card">
                         <h3 class="chart-title">实盘三维</h3>
@@ -846,13 +846,15 @@
             var el;
             if (d) {
                 setText('metric-return-rate', formatPct(d.returnRate));
+                el = document.getElementById('metric-return-rate');
+                if (el) { el.className = 'metric-value' + (d.returnRate >= 0 ? ' metric-value-red' : ' metric-value-green'); }
                 setText('metric-net-pnl', formatCurrency(d.totalNet));
                 el = document.getElementById('metric-net-pnl');
                 if (el) { el.className = 'metric-value' + (d.totalNet >= 0 ? ' metric-value-red' : ' metric-value-green'); }
                 setText('metric-total-asset', formatCurrency(d.totalAsset));
                 setText('metric-max-drawdown', formatPct(d.maxDrawdown));
                 el = document.getElementById('metric-max-drawdown');
-                if (el) { el.className = 'metric-value' + (d.maxDrawdown > 0 ? ' metric-value-red' : ' metric-value-green'); }
+                if (el) { el.className = 'metric-value metric-value-green'; }
                 setText('metric-fee-rate', formatPct(d.feeRate));
                 setText('metric-days', d.dateDiff + '天');
                 setText('metric-sub-annual', '5日年化 ' + (d.dateDiff > 0 ? (d.returnRate / d.dateDiff * 365).toFixed(2) : '--') + '%');
@@ -861,12 +863,24 @@
                 setText('metric-frequency', d.frequency.toFixed(2) + '笔/天');
                 el = document.getElementById('metric-frequency');
                 if (el) { el.className = 'metric-value'; }
-                if (d.pnlRatio > 0) {
+                // 盈亏比（盈利因子）：>=1 盈利显红，<1 亏损显绿；仅无数据才 N/A
+                if (d.pnlRatio >= 0) {
                     setText('metric-pnl-ratio', d.pnlRatio.toFixed(2));
-                    el = document.getElementById('metric-pnl-ratio'); if (el) { el.className = 'metric-value'; }
+                    el = document.getElementById('metric-pnl-ratio');
+                    if (el) { el.className = 'metric-value' + (d.pnlRatio >= 1 ? ' metric-value-red' : ' metric-value-green'); }
                 } else {
                     setText('metric-pnl-ratio', 'N/A');
                     el = document.getElementById('metric-pnl-ratio'); if (el) { el.className = 'metric-value metric-value-na'; }
+                }
+                // 盈利曲线注释：动态跟进（日期范围 + 期末净盈亏，随盈亏红绿）
+                var noteEl = document.getElementById('profit-curve-note');
+                if (noteEl) {
+                    var first = d.dailyCumulative.length ? d.dailyCumulative[0].date : '--';
+                    var last = d.dailyCumulative.length ? d.dailyCumulative[d.dailyCumulative.length - 1].date : '--';
+                    var sign = d.totalNet >= 0 ? '盈利' : '亏损';
+                    var netStr = d.totalNet >= 0 ? formatCurrency(d.totalNet) : formatCurrency(Math.abs(d.totalNet));
+                    var netCls = d.totalNet >= 0 ? ' metric-value-red' : ' metric-value-green';
+                    noteEl.innerHTML = '注释：逐日累计净盈亏（利息-费用），' + first + '至' + last + '共' + d.dailyCumulative.length + '天，期末净<span class="' + netCls + '">' + sign + netStr + '</span>。';
                 }
             } else {
                 var placeholders = {
@@ -875,6 +889,7 @@
                     'metric-win-rate': 'N/A', 'metric-frequency': 'N/A', 'metric-pnl-ratio': 'N/A'
                 };
                 Object.keys(placeholders).forEach(function(id) { setText(id, placeholders[id]); });
+                setText('profit-curve-note', '注释：逐日累计净盈亏（利息-费用），暂无交易数据。');
             }
         }
 
