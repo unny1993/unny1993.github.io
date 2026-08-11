@@ -73,7 +73,7 @@ const DEFAULT_COLLECTIONS = [
     },
     {
         "name": "生活,",
-        "articleIds": []
+        "articleIds": [1]
     }
 ];;
 
@@ -189,7 +189,7 @@ const DEFAULT_TRADE_RECORDS = [
 ];
 
 // ===== 数据版本控制 =====
-const DATA_VERSION = 6;
+const DATA_VERSION = 7;
 
 (function checkDataVersion() {
     var storedVer = localStorage.getItem('blog_data_version');
