@@ -185,11 +185,38 @@ const DEFAULT_TRADE_RECORDS = [
         "amount": 20002.23,
         "fee": 0,
         "id": 12
+    },
+    {
+        "date": "2026-08-10",
+        "type": "策略买入",
+        "code": "sz002131",
+        "name": "利欧股份",
+        "amount": 19656.0,
+        "fee": 1.88,
+        "id": 13
+    },
+    {
+        "date": "2026-08-11",
+        "type": "策略卖出",
+        "code": "sz002131",
+        "name": "利欧股份",
+        "amount": 19080.0,
+        "fee": 11.36,
+        "id": 14
+    },
+    {
+        "date": "2026-08-11",
+        "type": "逆回购借出",
+        "code": "204001.SH",
+        "name": "GC001",
+        "amount": 19000,
+        "fee": 0.19,
+        "id": 15
     }
-];
+];;
 
 // ===== 数据版本控制 =====
-const DATA_VERSION = 7;
+const DATA_VERSION = 8;
 
 (function checkDataVersion() {
     var storedVer = localStorage.getItem('blog_data_version');
