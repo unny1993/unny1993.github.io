@@ -635,9 +635,12 @@ function bindAdminArticleEvents() {
 
             if (!confirm('确定删除文章「' + delArt.title + '」吗？')) return;
             articles = articles.filter(function(a) { return a.id !== id; });
+            syncArticleToCollections(id, '');  // 从所有文集移除该引用
             saveToStorage('blog_articles', articles);
+            saveToStorage('blog_collections', collections);
             renderAdminArticles();
             renderAllPosts();
+            renderCollections();
         });
     });
 }
@@ -652,20 +655,26 @@ document.getElementById('admin-article-submit').addEventListener('click', functi
     if (content === '<br>') content = '';
     if (!title || !date) return;
 
+    var articleId;
     if (editingArticleId) {
         var a = articles.find(function(x) { return x.id === editingArticleId; });
         if (a) {
             a.title = title; a.category = category; a.date = date; a.excerpt = excerpt; a.content = content;
         }
+        articleId = editingArticleId;
     } else {
         var maxId = articles.reduce(function(max, a) { return Math.max(max, a.id); }, 0);
-        articles.push({ id: maxId + 1, title: title, category: category, date: date, excerpt: excerpt, content: content });
+        articleId = maxId + 1;
+        articles.push({ id: articleId, title: title, category: category, date: date, excerpt: excerpt, content: content });
     }
 
+    syncArticleToCollections(articleId, category);  // 选了分类即自动收录进同名文集
     saveToStorage('blog_articles', articles);
+    saveToStorage('blog_collections', collections);
     cancelEditArticle();
     renderAdminArticles();
     renderAllPosts();
+    renderCollections();
 });
 
 document.getElementById('admin-article-cancel').addEventListener('click', cancelEditArticle);
@@ -681,6 +690,23 @@ function cancelEditArticle() {
     document.getElementById('admin-article-content').innerHTML = '';
     document.getElementById('admin-article-submit').textContent = '添加文章';
     document.getElementById('admin-article-cancel').style.display = 'none';
+}
+
+// 写文章选了分类即自动收录进同名文集（category 为下拉框值，等于某文集 name，逗号保留原样）
+function syncArticleToCollections(articleId, category) {
+    // 先从所有文集移除该文章引用（避免改分类后残留旧引用 / 删除时清理）
+    collections.forEach(function(col) {
+        if (!col.articleIds) col.articleIds = [];
+        col.articleIds = col.articleIds.filter(function(id) { return id !== articleId; });
+    });
+    // 指定了分类则按分类加入同名文集
+    if (category) {
+        var target = collections.find(function(col) { return col.name === category; });
+        if (target) {
+            if (!target.articleIds) target.articleIds = [];
+            if (target.articleIds.indexOf(articleId) === -1) target.articleIds.push(articleId);
+        }
+    }
 }
 
 // ---- 管理：瞬间 ----
