@@ -33,16 +33,8 @@ const DEFAULT_ARTICLES = [
 
 const DEFAULT_MOMENTS = [
     {
-        "date": "2026-08-11",
-        "content": "不顺利的第一笔回转交易，要信心大于要黄金。"
-    },
-    {
         "date": "2026-08-10",
         "content": "晚上和媳妇说，再过两个月就过年了。她问我盼什么呢，我说放假呗。说完就后悔了，显得劳动思想觉悟不够高，哈哈哈。"
-    },
-    {
-        "date": "2026-08-10",
-        "content": "犹犹豫豫挂了-1bps，结果自己想太多。"
     },
     {
         "date": "2026-08-10",
@@ -80,7 +72,7 @@ const DEFAULT_COLLECTIONS = [
 const DEFAULT_TRADE_RECORDS = [];;
 
 // ===== 数据版本控制 =====
-const DATA_VERSION = 10;
+const DATA_VERSION = 11;
 
 (function checkDataVersion() {
     var storedVer = localStorage.getItem('blog_data_version');
