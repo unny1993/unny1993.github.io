@@ -20,16 +20,7 @@ function saveToStorage(key, data) {
 }
 
 // ===== 默认数据 =====
-const DEFAULT_ARTICLES = [
-    {
-        "id": 1,
-        "title": "讨厌的工作。",
-        "category": "生活,",
-        "date": "2026-08-11",
-        "excerpt": "",
-        "content": "迷迷糊糊地睡了一整天。<div>生活似乎又陷入进了某种困顿的节点。</div><div>工资发了4122，事情也愈发琐碎。</div><div>讨厌，真的很讨厌。</div>"
-    }
-];;
+const DEFAULT_ARTICLES = [];
 
 const DEFAULT_MOMENTS = [
     {
@@ -65,14 +56,14 @@ const DEFAULT_COLLECTIONS = [
     },
     {
         "name": "生活,",
-        "articleIds": [1]
+        "articleIds": []
     }
 ];;
 
 const DEFAULT_TRADE_RECORDS = [];;
 
 // ===== 数据版本控制 =====
-const DATA_VERSION = 11;
+const DATA_VERSION = 12;
 
 (function checkDataVersion() {
     var storedVer = localStorage.getItem('blog_data_version');
