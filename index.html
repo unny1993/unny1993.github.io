@@ -172,22 +172,49 @@
                 <div class="monkey-grid">
                     <div class="chart-card monkey-chart-card">
                         <h3 class="chart-title">实盘净值 vs 基准曲线（净值基准 1.000 · 年化对比）</h3>
+                        <div class="monkey-controls">
+                            <button id="monkey-log-toggle" class="monkey-btn" type="button">对数轴：关</button>
+                            <span class="monkey-hint">悬停查看净值</span>
+                        </div>
                         <div class="chart-canvas-wrap">
                             <canvas id="monkey-overlay-canvas"></canvas>
                         </div>
+                        <div id="monkey-tooltip" class="monkey-tooltip"></div>
                         <div class="chart-legend">
                             <span class="legend-item"><i class="legend-dot" style="background:#4FC3F7"></i>实盘净值</span>
-                            <span class="legend-item"><i class="legend-dot" style="background:#FFB74D"></i>猴子策略基准（年化）</span>
+                            <span class="legend-item"><i class="legend-dot" style="background:#FFB74D"></i>猴子策略基准（年化 ±1σ 带）</span>
                         </div>
                         <p class="chart-note" id="monkey-overlay-note"></p>
                     </div>
                     <div class="monkey-countdown" id="monkey-countdown">
                         <h3 class="chart-title">百万倒计时</h3>
+                        <canvas id="monkey-gauge-canvas" class="monkey-gauge"></canvas>
                         <div class="cd-row"><span class="cd-label">当前实盘净值</span><span class="cd-value" id="cd-current">--</span></div>
                         <div class="cd-row"><span class="cd-label">距百万还差</span><span class="cd-value cd-gap" id="cd-gap">--</span></div>
                         <div class="cd-row"><span class="cd-label">基准年化(全周期)</span><span class="cd-value" id="cd-cagr">--</span></div>
                         <div class="cd-row cd-target"><span class="cd-label">预计达成</span><span class="cd-value" id="cd-date">--</span></div>
                         <p class="chart-note" id="cd-note"></p>
+                    </div>
+                    <div class="monkey-subgrid">
+                        <div class="chart-card">
+                            <h3 class="chart-title">策略回撤水下曲线（历史真实回撤）</h3>
+                            <div class="chart-canvas-wrap"><canvas id="monkey-dd-canvas"></canvas></div>
+                            <p class="chart-note" id="monkey-dd-note"></p>
+                        </div>
+                        <div class="chart-card">
+                            <h3 class="chart-title">滚动 1 年夏普（质量随时间）</h3>
+                            <div class="chart-canvas-wrap"><canvas id="monkey-roll-canvas"></canvas></div>
+                            <p class="chart-note" id="monkey-roll-note"></p>
+                        </div>
+                        <div class="chart-card monkey-wide">
+                            <h3 class="chart-title">策略 vs 上证 · 归一对比（2009 起，同以 1.000 起算）</h3>
+                            <div class="chart-canvas-wrap"><canvas id="monkey-compare-canvas"></canvas></div>
+                            <div class="chart-legend">
+                                <span class="legend-item"><i class="legend-dot" style="background:#FFB74D"></i>猴子策略基准</span>
+                                <span class="legend-item"><i class="legend-dot" style="background:#9E9E9E"></i>上证指数</span>
+                            </div>
+                            <p class="chart-note" id="monkey-compare-note"></p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1186,10 +1213,12 @@
             return cur;
         }
 
+        var monkeyLog = false, monkeyLastD = null, monkeyOverlayState = null;
         function drawMonkeyOverlay(d) {
             var B = window.MONKEY_BENCH;
             var canvas = document.getElementById('monkey-overlay-canvas');
             if (!canvas || !B) return;
+            monkeyLastD = d;
             var wrap = canvas.parentElement;
             var isMobile = window.innerWidth <= 768;
             var w = Math.min(wrap.clientWidth || 480, window.innerWidth - 24);
@@ -1199,10 +1228,9 @@
             canvas.style.width = w + 'px'; canvas.style.height = h + 'px';
             canvas.style.maxWidth = '100%';
             var ctx = canvas.getContext('2d');
-            ctx.scale(dpr, dpr);
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-            var cap = B.liveCapital, target = B.target, cagr = B.cagr;
-            var daily = B.daily, benchLen = B.benchLen;
+            var cap = B.liveCapital, target = B.target, cagr = B.cagr, annVol = B.annVol || 0.3;
             var liveStart = new Date(B.liveStart + 'T00:00:00');
             var today = new Date();
 
@@ -1219,7 +1247,6 @@
                     liveByOff[off] = pt.val;
                 });
             }
-            // 展示窗口：默认 2 年(504 交易日)，随成交/当前日期扩展，但不超百万所需
             var Nm = 1;
             while (Nm < 9000 && cap * Math.pow(1 + cagr, Nm / 250) < target) Nm++;
             var todayOff0 = tradingDaysBetween(liveStart, today);
@@ -1232,9 +1259,15 @@
                 if (liveByOff.hasOwnProperty(i)) lastCum = liveByOff[i];
                 liveArr[i] = (cap + lastCum) / cap;   // 实盘净值（基准 1.000）
             }
-            // 基准年化序列：从实盘起点按全周期 CAGR 平滑（与实盘同起点、同尺度，可直接对比）
-            var benchArr = new Array(N + 1);
-            for (var ib = 0; ib <= N; ib++) benchArr[ib] = Math.pow(1 + cagr, ib / 250);   // 基准净值（基准 1.000）
+            // 基准年化序列 + ±1σ 置信带（对数正态：log(nav) ± σ_ann·√(t/250)）
+            var benchArr = new Array(N + 1), benchHi = new Array(N + 1), benchLo = new Array(N + 1);
+            for (var ib = 0; ib <= N; ib++) {
+                var nav = Math.pow(1 + cagr, ib / 250);
+                benchArr[ib] = nav;
+                var sd = annVol * Math.sqrt(Math.max(ib, 1) / 250);
+                benchHi[ib] = Math.exp(Math.log(nav) + sd);
+                benchLo[ib] = Math.exp(Math.log(nav) - sd);
+            }
 
             var margin = { top: 24, right: isMobile ? 14 : 24, bottom: isMobile ? 30 : 40, left: isMobile ? 52 : 66 };
             var pw = w - margin.left - margin.right;
@@ -1242,27 +1275,38 @@
             var yMaxData = 1.0, yMinData = 1.0;
             for (var iy = 0; iy <= N; iy++) {
                 if (liveArr[iy] > yMaxData) yMaxData = liveArr[iy];
-                if (benchArr[iy] > yMaxData) yMaxData = benchArr[iy];
+                if (benchHi[iy] > yMaxData) yMaxData = benchHi[iy];
+                if (benchLo[iy] < yMinData) yMinData = benchLo[iy];
                 if (liveArr[iy] < yMinData) yMinData = liveArr[iy];
-                if (benchArr[iy] < yMinData) yMinData = benchArr[iy];
             }
-            var yMax = yMaxData * 1.08, yMin = Math.max(0, yMinData - (yMaxData - yMinData) * 0.12);
+            var useLog = monkeyLog;
+            var yT = function(v) { return useLog ? Math.log(Math.max(v, 1e-6)) : v; };
+            var yTmin = yT(yMinData), yTmax = yT(yMaxData);
+            var yMax = useLog ? Math.exp(yTmax + (yTmax - yTmin) * 0.08) : yMaxData * 1.08;
+            var yMin = useLog ? Math.exp(yTmin - (yTmax - yTmin) * 0.12) : Math.max(0, yMinData - (yMaxData - yMinData) * 0.12);
+            if (useLog) { yMaxData = yMax; yMinData = yMin; }
             function xPos(i) { return margin.left + (i / N) * pw; }
-            function yPos(v) { return margin.top + ph - ((v - yMin) / (yMax - yMin)) * ph; }
+            function yPos(v) { return margin.top + ph - ((yT(v) - yT(yMinData)) / (yT(yMaxData) - yT(yMinData))) * ph; }
 
+            ctx.clearRect(0, 0, w, h);
             // 网格 + y 轴标签
             ctx.fillStyle = '#666666';
             ctx.font = (isMobile ? '10px' : '11px') + ' Inter, sans-serif';
             ctx.textAlign = 'right';
             for (var g = 0; g <= 5; g++) {
-                var gv = yMax * g / 5;
+                var gv = useLog ? Math.exp(yTmin + (yTmax - yTmin) * g / 5) : (yMin + (yMax - yMin) * g / 5);
                 var gy = yPos(gv);
                 ctx.strokeStyle = 'rgba(255,255,255,0.06)'; ctx.lineWidth = 0.5;
                 ctx.beginPath(); ctx.moveTo(margin.left, gy); ctx.lineTo(margin.left + pw, gy); ctx.stroke();
-                ctx.fillText(gv.toFixed(2), margin.left - 8, gy + 4);   // 净值（基准 1.000）
+                ctx.fillText(gv.toFixed(2), margin.left - 8, gy + 4);
             }
 
-            // 注：百万目标为绝对金额，不在净值(1.000基准)坐标内，仅在右侧面板显示；图中只画净值曲线。
+            // 置信带（橙，半透明填充）
+            ctx.beginPath();
+            for (var ib2 = 0; ib2 <= N; ib2++) { var xh = xPos(ib2), yh = yPos(benchHi[ib2]); if (ib2 === 0) ctx.moveTo(xh, yh); else ctx.lineTo(xh, yh); }
+            for (var ib3 = N; ib3 >= 0; ib3--) ctx.lineTo(xPos(ib3), yPos(benchLo[ib3]));
+            ctx.closePath();
+            ctx.fillStyle = 'rgba(255,183,77,0.10)'; ctx.fill();
 
             // 基准曲线（橙，年化平滑）
             ctx.beginPath();
@@ -1281,7 +1325,7 @@
             ctx.strokeStyle = '#4FC3F7'; ctx.lineWidth = 2.5; ctx.lineJoin = 'round'; ctx.stroke();
             ctx.beginPath(); ctx.arc(xPos(0), yPos(liveArr[0]), 4, 0, Math.PI * 2); ctx.fillStyle = '#4FC3F7'; ctx.fill();
 
-            // x 轴日期标签（实盘运行日期）
+            // x 轴日期标签
             ctx.fillStyle = '#666666'; ctx.textAlign = 'center';
             var steps = isMobile ? 3 : 5;
             for (var s = 0; s <= steps; s++) {
@@ -1290,11 +1334,34 @@
                 ctx.fillText(dtl.getFullYear() + '-' + ('0' + (dtl.getMonth() + 1)).slice(-2), xPos(si), h - margin.bottom + 18);
             }
 
+            // 悬停状态（供 mousemove 使用）
+            monkeyOverlayState = { N: N, liveArr: liveArr, benchArr: benchArr, liveStart: liveStart, margin: margin, pw: pw, yMinData: yMinData, yMaxData: yMaxData, cap: cap, cagr: cagr };
+            if (!canvas.__hoverBound) {
+                canvas.__hoverBound = true;
+                canvas.addEventListener('mousemove', function(ev) {
+                    var st = monkeyOverlayState; if (!st) return;
+                    var rect = canvas.getBoundingClientRect();
+                    var x = ev.clientX - rect.left;
+                    var i = Math.round((x - st.margin.left) / st.pw * st.N);
+                    var tt = document.getElementById('monkey-tooltip');
+                    if (i < 0 || i > st.N) { if (tt) tt.style.display = 'none'; return; }
+                    var dtl = dateAtOffset(st.liveStart, i);
+                    var nav = st.liveArr[i], bn = st.benchArr[i];
+                    if (!tt) return;
+                    tt.innerHTML = '偏移 +' + i + ' 交易日 · ' + dtl.getFullYear() + '-' + ('0' + (dtl.getMonth() + 1)).slice(-2) + '-' + ('0' + dtl.getDate()).slice(-2) +
+                        '<br>实盘净值 <b>' + nav.toFixed(3) + '</b><br>基准净值 <b>' + bn.toFixed(3) + '</b>';
+                    tt.style.display = 'block';
+                    tt.style.left = (ev.clientX - rect.left + 14) + 'px';
+                    tt.style.top = (ev.clientY - rect.top + 10) + 'px';
+                });
+                canvas.addEventListener('mouseleave', function() { var tt = document.getElementById('monkey-tooltip'); if (tt) tt.style.display = 'none'; });
+            }
+
             var noteEl = document.getElementById('monkey-overlay-note');
             if (noteEl) {
                 var curNav = liveArr[Math.min(todayOff0, N)];
                 var curMoney = curNav * cap;
-                noteEl.innerHTML = '蓝线=实盘净值（基准 1.000，随成交实时更新），橙线=猴子策略基准（全周期年化 ' + (cagr * 100).toFixed(2) + '% 平滑，同以 1.000 起算）。两线同起点、同坐标，直接比涨幅——蓝线在橙线上方即跑赢基准。当前实盘净值 <span class="metric-value-red">' + curNav.toFixed(3) + '</span>（≈¥' + curMoney.toFixed(0) + '）。';
+                noteEl.innerHTML = '蓝线=实盘净值（基准 1.000），橙线=猴子策略基准（年化 ' + (cagr * 100).toFixed(2) + '%）含 ±1σ 置信带（年化波动 ' + (annVol * 100).toFixed(1) + '%）。带越宽=波动不确定性越大。当前实盘净值 <span class="metric-value-red">' + curNav.toFixed(3) + '</span>（≈¥' + curMoney.toFixed(0) + '）。';
             }
         }
 
@@ -1324,6 +1391,107 @@
             if (noteEl) noteEl.innerHTML = '资金额度 ¥' + cap.toLocaleString('zh-CN', { maximumFractionDigits: 0 }) + '（正常资金）；净值基准 1.000；按基准年化 ' + (cagr * 100).toFixed(2) + '% 约 ' + yrsToM.toFixed(1) + ' 年后触及百万。';
         }
 
+        function drawMonkeyDD() {
+            var B = window.MONKEY_BENCH;
+            var canvas = document.getElementById('monkey-dd-canvas');
+            if (!canvas || !B || !B.daily) return;
+            var data = B.daily, n = data.length;
+            var cum = new Array(n); cum[0] = data[0];
+            for (var i = 1; i < n; i++) cum[i] = Math.max(cum[i - 1], data[i]);
+            var dd = new Array(n); var worst = 0;
+            for (var i = 0; i < n; i++) { dd[i] = data[i] / cum[i] - 1; if (dd[i] < worst) worst = dd[i]; }
+            var wrap = canvas.parentElement, isMobile = window.innerWidth <= 768;
+            var w = Math.min(wrap.clientWidth || 480, window.innerWidth - 24), h = isMobile ? 220 : 260;
+            var dpr = window.devicePixelRatio || 1;
+            canvas.width = w * dpr; canvas.height = h * dpr; canvas.style.width = w + 'px'; canvas.style.height = h + 'px';
+            var ctx = canvas.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, w, h);
+            var m = { top: 16, right: 14, bottom: 24, left: 48 }, pw = w - m.left - m.right, ph = h - m.top - m.bottom;
+            var yMin = worst * 1.05, yMax = 0;
+            function xP(i) { return m.left + (i / (n - 1)) * pw; }
+            function yP(v) { return m.top + ph - ((v - yMin) / (yMax - yMin)) * ph; }
+            ctx.fillStyle = '#666'; ctx.font = '10px Inter'; ctx.textAlign = 'right';
+            for (var g = 0; g <= 4; g++) { var gv = yMin + (yMax - yMin) * g / 4, gy = yP(gv); ctx.strokeStyle = 'rgba(255,255,255,0.06)'; ctx.lineWidth = 0.5; ctx.beginPath(); ctx.moveTo(m.left, gy); ctx.lineTo(m.left + pw, gy); ctx.stroke(); ctx.fillText((gv * 100).toFixed(0) + '%', m.left - 6, gy + 3); }
+            ctx.beginPath(); ctx.moveTo(xP(0), yP(0));
+            for (var i = 0; i < n; i++) ctx.lineTo(xP(i), yP(dd[i]));
+            ctx.lineTo(xP(n - 1), yP(0)); ctx.closePath(); ctx.fillStyle = 'rgba(232,93,93,0.28)'; ctx.fill();
+            ctx.beginPath(); for (var i = 0; i < n; i++) { var x = xP(i), y = yP(dd[i]); if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y); }
+            ctx.strokeStyle = '#e85d5d'; ctx.lineWidth = 1.2; ctx.stroke();
+            ctx.fillStyle = '#666'; ctx.textAlign = 'center'; ctx.fillText('2009', xP(0), h - 6); ctx.fillText('2026', xP(n - 1), h - 6);
+            var note = document.getElementById('monkey-dd-note');
+            if (note) note.innerHTML = 'V5 基准历史真实回撤（非平滑）。最深约 <b>' + (worst * 100).toFixed(1) + '%</b>，反映策略波动/回撤风险——这是比夏普更接近 1.0 更该盯的指标。';
+        }
+
+        function drawMonkeyRoll() {
+            var B = window.MONKEY_BENCH;
+            var canvas = document.getElementById('monkey-roll-canvas');
+            if (!canvas || !B || !B.daily) return;
+            var data = B.daily, n = data.length, win = 252;
+            var ret = new Array(n); for (var i = 1; i < n; i++) ret[i] = data[i] / data[i - 1] - 1;
+            var ser = [];
+            for (var i = win; i < n; i++) { var m = 0; for (var k = i - win; k < i; k++) m += ret[k]; m /= win; var s = 0; for (var k = i - win; k < i; k++) s += (ret[k] - m) * (ret[k] - m); s = Math.sqrt(s / (win - 1)); ser.push(m / (s + 1e-12) * Math.sqrt(250)); }
+            var L = ser.length;
+            var wrap = canvas.parentElement, isMobile = window.innerWidth <= 768;
+            var w = Math.min(wrap.clientWidth || 480, window.innerWidth - 24), h = isMobile ? 220 : 260;
+            var dpr = window.devicePixelRatio || 1;
+            canvas.width = w * dpr; canvas.height = h * dpr; canvas.style.width = w + 'px'; canvas.style.height = h + 'px';
+            var ctx = canvas.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, w, h);
+            var m = { top: 16, right: 14, bottom: 24, left: 48 }, pw = w - m.left - m.right, ph = h - m.top - m.bottom;
+            var yMin = Math.min.apply(null, ser), yMax = Math.max.apply(null, ser), pad = (yMax - yMin) * 0.1; yMin -= pad; yMax += pad;
+            function xP(i) { return m.left + (i / (L - 1)) * pw; }
+            function yP(v) { return m.top + ph - ((v - yMin) / (yMax - yMin)) * ph; }
+            if (yMin < 0 && yMax > 0) { var zy = yP(0); ctx.strokeStyle = 'rgba(255,255,255,0.15)'; ctx.lineWidth = 0.8; ctx.beginPath(); ctx.moveTo(m.left, zy); ctx.lineTo(m.left + pw, zy); ctx.stroke(); }
+            ctx.fillStyle = '#666'; ctx.font = '10px Inter'; ctx.textAlign = 'right';
+            for (var g = 0; g <= 4; g++) { var gv = yMin + (yMax - yMin) * g / 4, gy = yP(gv); ctx.strokeStyle = 'rgba(255,255,255,0.06)'; ctx.lineWidth = 0.5; ctx.beginPath(); ctx.moveTo(m.left, gy); ctx.lineTo(m.left + pw, gy); ctx.stroke(); ctx.fillText(gv.toFixed(2), m.left - 6, gy + 3); }
+            ctx.beginPath(); for (var i = 0; i < L; i++) { var x = xP(i), y = yP(ser[i]); if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y); }
+            ctx.strokeStyle = '#4FC3F7'; ctx.lineWidth = 1.4; ctx.stroke();
+            ctx.fillStyle = '#666'; ctx.textAlign = 'center'; ctx.fillText('2009', xP(0), h - 6); ctx.fillText('2026', xP(L - 1), h - 6);
+            var note = document.getElementById('monkey-roll-note');
+            if (note) note.innerHTML = '滚动 1 年夏普（窗口 252 交易日）。近段明显走低 = 策略质量/edge 衰减的预警信号。当前 <b>' + ser[L - 1].toFixed(2) + '</b>。';
+        }
+
+        function drawMonkeyCompare() {
+            var B = window.MONKEY_BENCH;
+            var canvas = document.getElementById('monkey-compare-canvas');
+            if (!canvas || !B || !B.daily) return;
+            var strat = B.daily, sh = (B.sh && B.sh.length) ? B.sh : null, n = strat.length;
+            var wrap = canvas.parentElement, isMobile = window.innerWidth <= 768;
+            var w = Math.min(wrap.clientWidth || 480, window.innerWidth - 24), h = isMobile ? 240 : 280;
+            var dpr = window.devicePixelRatio || 1;
+            canvas.width = w * dpr; canvas.height = h * dpr; canvas.style.width = w + 'px'; canvas.style.height = h + 'px';
+            var ctx = canvas.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, w, h);
+            var m = { top: 16, right: 16, bottom: 24, left: 48 }, pw = w - m.left - m.right, ph = h - m.top - m.bottom;
+            var yMin = Infinity, yMax = -Infinity;
+            for (var i = 0; i < n; i++) { if (strat[i] < yMin) yMin = strat[i]; if (strat[i] > yMax) yMax = strat[i]; if (sh && sh[i] < yMin) yMin = sh[i]; if (sh && sh[i] > yMax) yMax = sh[i]; }
+            var pad = (yMax - yMin) * 0.08; yMin -= pad; yMax += pad;
+            function xP(i) { return m.left + (i / (n - 1)) * pw; }
+            function yP(v) { return m.top + ph - ((v - yMin) / (yMax - yMin)) * ph; }
+            ctx.fillStyle = '#666'; ctx.font = '10px Inter'; ctx.textAlign = 'right';
+            for (var g = 0; g <= 4; g++) { var gv = yMin + (yMax - yMin) * g / 4, gy = yP(gv); ctx.strokeStyle = 'rgba(255,255,255,0.06)'; ctx.lineWidth = 0.5; ctx.beginPath(); ctx.moveTo(m.left, gy); ctx.lineTo(m.left + pw, gy); ctx.stroke(); ctx.fillText(gv.toFixed(2), m.left - 6, gy + 3); }
+            if (sh) { ctx.beginPath(); for (var i = 0; i < n; i++) { var x = xP(i), y = yP(sh[i]); if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y); } ctx.strokeStyle = '#9E9E9E'; ctx.lineWidth = 1.6; ctx.stroke(); }
+            ctx.beginPath(); for (var i = 0; i < n; i++) { var x = xP(i), y = yP(strat[i]); if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y); }
+            ctx.strokeStyle = '#FFB74D'; ctx.lineWidth = 1.8; ctx.stroke();
+            ctx.fillStyle = '#666'; ctx.textAlign = 'center'; ctx.fillText('2009', xP(0), h - 6); ctx.fillText('2026', xP(n - 1), h - 6);
+            var note = document.getElementById('monkey-compare-note');
+            if (note) note.innerHTML = '同以 1.000 起算。橙=猴子策略基准（年化 ' + (B.cagr * 100).toFixed(1) + '%，含再投资），灰=上证指数。基准长期显著跑赢大盘，但回撤更大（见上图）。';
+        }
+
+        function drawCountdownGauge(d) {
+            var B = window.MONKEY_BENCH;
+            var canvas = document.getElementById('monkey-gauge-canvas');
+            if (!canvas || !B) return;
+            var curLive = (d && d.totalNet) ? (B.liveCapital + d.totalNet) : B.liveCapital;
+            var prog = Math.max(0, Math.min(1, curLive / B.target));
+            var sz = 150, dpr = window.devicePixelRatio || 1;
+            canvas.width = sz * dpr; canvas.height = sz * dpr; canvas.style.width = sz + 'px'; canvas.style.height = sz + 'px';
+            var ctx = canvas.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, sz, sz);
+            var cx = sz / 2, cy = sz / 2, r = sz / 2 - 14;
+            ctx.lineWidth = 12; ctx.strokeStyle = '#222'; ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.stroke();
+            ctx.strokeStyle = '#4FC3F7'; ctx.lineCap = 'round'; ctx.beginPath(); ctx.arc(cx, cy, r, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * prog); ctx.stroke();
+            ctx.fillStyle = '#fff'; ctx.font = 'bold 22px Inter'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.fillText((prog * 100).toFixed(2) + '%', cx, cy - 6);
+            ctx.fillStyle = '#888'; ctx.font = '11px Inter'; ctx.fillText('→ 百万', cx, cy + 16);
+        }
+
         function refreshDashboard() {
             var records = getTradeRecords();
             var d = computeDashboard(records);
@@ -1333,6 +1501,20 @@
             drawDonut(d);
             drawMonkeyOverlay(d);
             updateCountdown(d);
+            drawCountdownGauge(d);
+            drawMonkeyDD();
+            drawMonkeyRoll();
+            drawMonkeyCompare();
+            var logBtn = document.getElementById('monkey-log-toggle');
+            if (logBtn && !logBtn.__bound) {
+                logBtn.__bound = true;
+                logBtn.addEventListener('click', function() {
+                    monkeyLog = !monkeyLog;
+                    logBtn.textContent = '对数轴：' + (monkeyLog ? '开' : '关');
+                    logBtn.classList.toggle('active', monkeyLog);
+                    drawMonkeyOverlay(monkeyLastD);
+                });
+            }
         }
 
         window.drawAllCharts = refreshDashboard;

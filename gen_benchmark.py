@@ -13,6 +13,7 @@ import json
 import os
 
 EQ_PATH = r"D:\猴子策略\output\monkey_strategy_v5\equity_curve.csv"
+SH_PATH = r"D:\猴子策略\data\sh000001_close.csv"
 OUT_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "benchmark_data.js")
 
 # 实盘口径（与 data/account.json、dashboard START_DATE 对齐）
@@ -30,8 +31,23 @@ def main():
     years = (eq["date"].iloc[-1] - eq["date"].iloc[0]).days / 365.25
     cagr = (end / start) ** (1 / years) - 1
 
-    # 每日净值比值（相对起点 9000），用于复盘叠加
+    # 每日净值比值（相对起点 9000），用于复盘叠加与回撤/滚动夏普图
     daily_ratio = (eq_vals / start).round(4).tolist()
+
+    # 年化波动率（用于基准置信带）
+    daily_ret = np.diff(eq_vals) / eq_vals[:-1]
+    ann_vol = float(daily_ret.std(ddof=1) * np.sqrt(250))
+
+    # 上证对比序列：rebase 到 V5 净值同一起点(首日)，按 V5 交易日对齐(ffill)
+    try:
+        sh = pd.read_csv(SH_PATH, index_col=0, parse_dates=True, encoding="utf-8-sig").iloc[:, 0]
+        sh = sh[sh.index >= eq["date"].iloc[0]]
+        sh = sh.reindex(eq["date"]).ffill().dropna()
+        sh_ratio = (sh / sh.iloc[0]).round(4).tolist()
+        sh_ok = True
+    except Exception as e:
+        sh_ratio = []; sh_ok = False
+        print("WARN 上证序列加载失败:", e)
 
     # 倒计时用的几何年化（CAGR）
     # 预计达成年数: ln(TARGET/capital)/ln(1+cagr)
@@ -42,10 +58,13 @@ def main():
         "liveCapital": LIVE_CAPITAL,
         "target": TARGET,
         "cagr": round(cagr, 4),
+        "annVol": round(ann_vol, 4),
         "benchStart": str(eq["date"].iloc[0].date()),
         "benchEnd": str(eq["date"].iloc[-1].date()),
         "benchLen": n,
-        "daily": daily_ratio,          # 基准每日净值 / 9000
+        "daily": daily_ratio,          # 基准每日净值 / 9000（实际曲线，含回撤）
+        "sh": sh_ratio,               # 上证 rebased 1.000（与 daily 同日对齐）
+        "shOk": sh_ok,
         "yrsToTarget": round(float(yrs_to_target), 2),
     }
 
@@ -57,7 +76,8 @@ def main():
 
     print(f"基准区间 {data['benchStart']}~{data['benchEnd']} ({n} 交易日)")
     print(f"实盘起点 {LIVE_START} | 本金 {LIVE_CAPITAL:,.2f} | 目标 {TARGET:,.0f}")
-    print(f"基准 CAGR {cagr*100:.2f}% | 达百万约 {yrs_to_target:.1f} 年")
+    print(f"基准 CAGR {cagr*100:.2f}% | 年化波动 {ann_vol*100:.2f}% | 达百万约 {yrs_to_target:.1f} 年")
+    print(f"上证对比序列: {'OK' if sh_ok else '跳过'} ({len(sh_ratio)} 点)")
     print(f"已写出 {OUT_PATH}")
 
 if __name__ == "__main__":
