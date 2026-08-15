@@ -964,6 +964,58 @@ a { color: inherit; text-decoration: none; }
     flex-shrink: 0;
 }
 
+/* ---- 猴子策略 · 实盘净值 vs 基准曲线 + 百万倒计时 ---- */
+.monkey-section { margin-top: 8px; }
+.monkey-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 40px;
+    align-items: stretch;
+}
+.monkey-chart-card {
+    background: transparent;
+    padding: 0 0 16px 0;
+    border-bottom: 1px solid #222;
+    display: flex;
+    flex-direction: column;
+}
+.monkey-countdown {
+    background: #0e0e0e;
+    border: 1px solid #222;
+    border-radius: 12px;
+    padding: 20px 22px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+.monkey-countdown .chart-title { margin-bottom: 18px; text-align: left; }
+.cd-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 11px 0;
+    border-bottom: 1px dashed #1c1c1c;
+}
+.cd-row:last-of-type { border-bottom: none; }
+.cd-label { font-size: 13px; color: #888; }
+.cd-value {
+    font-size: 21px;
+    font-weight: 700;
+    color: #fff;
+    font-variant-numeric: tabular-nums;
+}
+.cd-gap { color: #e85d5d; }
+.cd-target .cd-value { color: #4FC3F7; }
+.legend-dash {
+    border-radius: 0 !important;
+    height: 3px !important;
+    width: 16px !important;
+    margin-top: 4px;
+}
+@media (max-width: 980px) {
+    .monkey-grid { grid-template-columns: 1fr; gap: 28px; }
+}
+
 /* ---- Responsive ---- */
 @media (max-width: 1100px) {
     .metrics-grid { grid-template-columns: repeat(2, 1fr); }

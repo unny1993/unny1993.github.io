@@ -165,6 +165,32 @@
                     </div>
                 </div>
             </div>
+
+            <!-- 🐵 猴子策略 · 实盘净值 vs 基准曲线 + 百万倒计时 -->
+            <div class="section monkey-section">
+                <h2 class="section-label">🐵 猴子策略 · 实盘净值 vs 基准曲线</h2>
+                <div class="monkey-grid">
+                    <div class="chart-card monkey-chart-card">
+                        <h3 class="chart-title">实盘净值 vs 基准曲线（净值基准 1.000 · 年化对比）</h3>
+                        <div class="chart-canvas-wrap">
+                            <canvas id="monkey-overlay-canvas"></canvas>
+                        </div>
+                        <div class="chart-legend">
+                            <span class="legend-item"><i class="legend-dot" style="background:#4FC3F7"></i>实盘净值</span>
+                            <span class="legend-item"><i class="legend-dot" style="background:#FFB74D"></i>猴子策略基准（年化）</span>
+                        </div>
+                        <p class="chart-note" id="monkey-overlay-note"></p>
+                    </div>
+                    <div class="monkey-countdown" id="monkey-countdown">
+                        <h3 class="chart-title">百万倒计时</h3>
+                        <div class="cd-row"><span class="cd-label">当前实盘净值</span><span class="cd-value" id="cd-current">--</span></div>
+                        <div class="cd-row"><span class="cd-label">距百万还差</span><span class="cd-value cd-gap" id="cd-gap">--</span></div>
+                        <div class="cd-row"><span class="cd-label">基准年化(全周期)</span><span class="cd-value" id="cd-cagr">--</span></div>
+                        <div class="cd-row cd-target"><span class="cd-label">预计达成</span><span class="cd-value" id="cd-date">--</span></div>
+                        <p class="chart-note" id="cd-note"></p>
+                    </div>
+                </div>
+            </div>
         </section>
 
         <!-- 8. About -->
@@ -700,6 +726,7 @@
     draw();
 })();
     </script>
+    <script src="benchmark_data.js"></script>
     <script>
     // ===== 数据仪表盘 Chart.js (简化版：方向金额制) =====
     (function() {
@@ -810,7 +837,7 @@
                 dailyCumulative.push({ date: d.slice(5), val: cumulative });
             });
 
-            var START_DATE = new Date('2026-08-01');
+            var START_DATE = new Date('2026-08-15');
             var today = new Date();
             var dateDiff = Math.floor((today.getTime() - START_DATE.getTime()) / 86400000) + 1;
 
@@ -1137,6 +1164,166 @@
             }
         }
 
+        function tradingDaysBetween(a, b) {
+            var cnt = 0;
+            var cur = new Date(a.getTime());
+            while (cur <= b) {
+                var dow = cur.getDay();
+                if (dow !== 0 && dow !== 6) cnt++;
+                cur.setDate(cur.getDate() + 1);
+            }
+            return cnt;
+        }
+
+        function dateAtOffset(startDate, offset) {
+            var cur = new Date(startDate.getTime());
+            var cnt = 0;
+            while (cnt < offset) {
+                cur.setDate(cur.getDate() + 1);
+                var dow = cur.getDay();
+                if (dow !== 0 && dow !== 6) cnt++;
+            }
+            return cur;
+        }
+
+        function drawMonkeyOverlay(d) {
+            var B = window.MONKEY_BENCH;
+            var canvas = document.getElementById('monkey-overlay-canvas');
+            if (!canvas || !B) return;
+            var wrap = canvas.parentElement;
+            var isMobile = window.innerWidth <= 768;
+            var w = Math.min(wrap.clientWidth || 480, window.innerWidth - 24);
+            var h = isMobile ? 320 : 460;
+            var dpr = window.devicePixelRatio || 1;
+            canvas.width = w * dpr; canvas.height = h * dpr;
+            canvas.style.width = w + 'px'; canvas.style.height = h + 'px';
+            canvas.style.maxWidth = '100%';
+            var ctx = canvas.getContext('2d');
+            ctx.scale(dpr, dpr);
+
+            var cap = B.liveCapital, target = B.target, cagr = B.cagr;
+            var daily = B.daily, benchLen = B.benchLen;
+            var liveStart = new Date(B.liveStart + 'T00:00:00');
+            var today = new Date();
+
+            // 实盘净值按"距实盘起点交易日数"对齐
+            var liveByOff = {};
+            var maxLiveOff = 0;
+            if (d && d.dailyCumulative && d.dailyCumulative.length) {
+                d.dailyCumulative.forEach(function(pt) {
+                    var md = pt.date.split('-');
+                    var dt = new Date('2026-' + md[0] + '-' + md[1] + 'T00:00:00');
+                    if (dt < liveStart) dt = liveStart;
+                    var off = tradingDaysBetween(liveStart, dt);
+                    if (off > maxLiveOff) maxLiveOff = off;
+                    liveByOff[off] = pt.val;
+                });
+            }
+            // 展示窗口：默认 2 年(504 交易日)，随成交/当前日期扩展，但不超百万所需
+            var Nm = 1;
+            while (Nm < 9000 && cap * Math.pow(1 + cagr, Nm / 250) < target) Nm++;
+            var todayOff0 = tradingDaysBetween(liveStart, today);
+            var N = Math.max(504, maxLiveOff + 60, todayOff0 + 20);
+            N = Math.min(N, Nm);
+
+            var liveArr = new Array(N + 1);
+            var lastCum = 0;
+            for (var i = 0; i <= N; i++) {
+                if (liveByOff.hasOwnProperty(i)) lastCum = liveByOff[i];
+                liveArr[i] = (cap + lastCum) / cap;   // 实盘净值（基准 1.000）
+            }
+            // 基准年化序列：从实盘起点按全周期 CAGR 平滑（与实盘同起点、同尺度，可直接对比）
+            var benchArr = new Array(N + 1);
+            for (var ib = 0; ib <= N; ib++) benchArr[ib] = Math.pow(1 + cagr, ib / 250);   // 基准净值（基准 1.000）
+
+            var margin = { top: 24, right: isMobile ? 14 : 24, bottom: isMobile ? 30 : 40, left: isMobile ? 52 : 66 };
+            var pw = w - margin.left - margin.right;
+            var ph = h - margin.top - margin.bottom;
+            var yMaxData = 1.0, yMinData = 1.0;
+            for (var iy = 0; iy <= N; iy++) {
+                if (liveArr[iy] > yMaxData) yMaxData = liveArr[iy];
+                if (benchArr[iy] > yMaxData) yMaxData = benchArr[iy];
+                if (liveArr[iy] < yMinData) yMinData = liveArr[iy];
+                if (benchArr[iy] < yMinData) yMinData = benchArr[iy];
+            }
+            var yMax = yMaxData * 1.08, yMin = Math.max(0, yMinData - (yMaxData - yMinData) * 0.12);
+            function xPos(i) { return margin.left + (i / N) * pw; }
+            function yPos(v) { return margin.top + ph - ((v - yMin) / (yMax - yMin)) * ph; }
+
+            // 网格 + y 轴标签
+            ctx.fillStyle = '#666666';
+            ctx.font = (isMobile ? '10px' : '11px') + ' Inter, sans-serif';
+            ctx.textAlign = 'right';
+            for (var g = 0; g <= 5; g++) {
+                var gv = yMax * g / 5;
+                var gy = yPos(gv);
+                ctx.strokeStyle = 'rgba(255,255,255,0.06)'; ctx.lineWidth = 0.5;
+                ctx.beginPath(); ctx.moveTo(margin.left, gy); ctx.lineTo(margin.left + pw, gy); ctx.stroke();
+                ctx.fillText(gv.toFixed(2), margin.left - 8, gy + 4);   // 净值（基准 1.000）
+            }
+
+            // 注：百万目标为绝对金额，不在净值(1.000基准)坐标内，仅在右侧面板显示；图中只画净值曲线。
+
+            // 基准曲线（橙，年化平滑）
+            ctx.beginPath();
+            for (var i2 = 0; i2 <= N; i2++) {
+                var bx = xPos(i2), by = yPos(benchArr[i2]);
+                if (i2 === 0) ctx.moveTo(bx, by); else ctx.lineTo(bx, by);
+            }
+            ctx.strokeStyle = '#FFB74D'; ctx.lineWidth = 2.5; ctx.lineJoin = 'round'; ctx.stroke();
+
+            // 实盘净值曲线（蓝，上层）
+            ctx.beginPath();
+            for (var i3 = 0; i3 <= N; i3++) {
+                var lx = xPos(i3), ly = yPos(liveArr[i3]);
+                if (i3 === 0) ctx.moveTo(lx, ly); else ctx.lineTo(lx, ly);
+            }
+            ctx.strokeStyle = '#4FC3F7'; ctx.lineWidth = 2.5; ctx.lineJoin = 'round'; ctx.stroke();
+            ctx.beginPath(); ctx.arc(xPos(0), yPos(liveArr[0]), 4, 0, Math.PI * 2); ctx.fillStyle = '#4FC3F7'; ctx.fill();
+
+            // x 轴日期标签（实盘运行日期）
+            ctx.fillStyle = '#666666'; ctx.textAlign = 'center';
+            var steps = isMobile ? 3 : 5;
+            for (var s = 0; s <= steps; s++) {
+                var si = Math.round(N * s / steps);
+                var dtl = dateAtOffset(liveStart, si);
+                ctx.fillText(dtl.getFullYear() + '-' + ('0' + (dtl.getMonth() + 1)).slice(-2), xPos(si), h - margin.bottom + 18);
+            }
+
+            var noteEl = document.getElementById('monkey-overlay-note');
+            if (noteEl) {
+                var curNav = liveArr[Math.min(todayOff0, N)];
+                var curMoney = curNav * cap;
+                noteEl.innerHTML = '蓝线=实盘净值（基准 1.000，随成交实时更新），橙线=猴子策略基准（全周期年化 ' + (cagr * 100).toFixed(2) + '% 平滑，同以 1.000 起算）。两线同起点、同坐标，直接比涨幅——蓝线在橙线上方即跑赢基准。当前实盘净值 <span class="metric-value-red">' + curNav.toFixed(3) + '</span>（≈¥' + curMoney.toFixed(0) + '）。';
+            }
+        }
+
+        function updateCountdown(d) {
+            var B = window.MONKEY_BENCH;
+            if (!B) return;
+            var cap = B.liveCapital, target = B.target, cagr = B.cagr;
+            var liveStart = new Date(B.liveStart + 'T00:00:00');
+            var totalNet = (d && d.totalNet) ? d.totalNet : 0;
+            var curLive = cap + totalNet;            // 正常资金额度（¥）
+            var curNav = curLive / cap;             // 实盘净值（基准 1.000）
+            var gap = target - curLive;
+            var yrsToM = Math.log(target / curLive) / Math.log(1 + cagr);
+            var proj = new Date(liveStart.getTime());
+            proj.setFullYear(proj.getFullYear() + Math.floor(yrsToM));
+            proj.setMonth(proj.getMonth() + Math.round((yrsToM - Math.floor(yrsToM)) * 12));
+
+            var set2 = function(id, txt, cls) {
+                var el = document.getElementById(id);
+                if (el) { el.textContent = txt; if (cls) el.className = 'cd-value ' + cls; }
+            };
+            set2('cd-current', curNav.toFixed(3) + ' ×');
+            set2('cd-gap', '¥' + Math.max(gap, 0).toLocaleString('zh-CN', { maximumFractionDigits: 0 }), 'cd-gap');
+            set2('cd-cagr', (cagr * 100).toFixed(2) + '%');
+            set2('cd-date', proj.getFullYear() + '-' + ('0' + (proj.getMonth() + 1)).slice(-2));
+            var noteEl = document.getElementById('cd-note');
+            if (noteEl) noteEl.innerHTML = '资金额度 ¥' + cap.toLocaleString('zh-CN', { maximumFractionDigits: 0 }) + '（正常资金）；净值基准 1.000；按基准年化 ' + (cagr * 100).toFixed(2) + '% 约 ' + yrsToM.toFixed(1) + ' 年后触及百万。';
+        }
+
         function refreshDashboard() {
             var records = getTradeRecords();
             var d = computeDashboard(records);
@@ -1144,6 +1331,8 @@
             drawProfitCurve(d);
             drawRadar(d);
             drawDonut(d);
+            drawMonkeyOverlay(d);
+            updateCountdown(d);
         }
 
         window.drawAllCharts = refreshDashboard;
