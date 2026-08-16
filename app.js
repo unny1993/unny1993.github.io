@@ -73,7 +73,9 @@ const DEFAULT_GALLERY = [
 const DEFAULT_COLLECTIONS = [
     {
         "name": "思考,",
-        "articleIds": []
+        "articleIds": [
+            2
+        ]
     },
     {
         "name": "生活,",
@@ -84,19 +86,13 @@ const DEFAULT_COLLECTIONS = [
         "articleIds": [
             1
         ]
-    },
-    {
-        "name": "思考,",
-        "articleIds": [
-            2
-        ]
     }
-];;;;;
+];;
 
 const DEFAULT_TRADE_RECORDS = [];;
 
 // ===== 数据版本控制 =====
-const DATA_VERSION = 16;
+const DATA_VERSION = 17;
 
 (function checkDataVersion() {
     var storedVer = localStorage.getItem('blog_data_version');
