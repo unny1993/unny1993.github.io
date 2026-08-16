@@ -41,6 +41,10 @@ const DEFAULT_ARTICLES = [
 
 const DEFAULT_MOMENTS = [
     {
+        "date": "2026-08-16",
+        "content": "中午老婆从快递站回来说，和老板请了假。决定月末与我去广州，这样我们就不会分开很久。我很开心，却又觉得有种莫名愧疚。如果有了钱，有对工作说不的权利。或许，就不存在偶尔分开的可能性了。"
+    },
+    {
         "date": "2026-08-10",
         "content": "晚上和媳妇说，再过两个月就过年了。她问我盼什么呢，我说放假呗。说完就后悔了，显得劳动思想觉悟不够高，哈哈哈。"
     },
@@ -92,7 +96,7 @@ const DEFAULT_COLLECTIONS = [
 const DEFAULT_TRADE_RECORDS = [];;
 
 // ===== 数据版本控制 =====
-const DATA_VERSION = 15;
+const DATA_VERSION = 16;
 
 (function checkDataVersion() {
     var storedVer = localStorage.getItem('blog_data_version');
