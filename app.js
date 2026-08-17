@@ -138,7 +138,7 @@ const DEFAULT_TRADE_RECORDS = [
         "code": "600667",
         "name": "太极实业",
         "amount": 6738.0,
-        "fee": 1.2
+        "fee": 1.07
     },
     {
         "id": 2,
@@ -147,12 +147,12 @@ const DEFAULT_TRADE_RECORDS = [
         "code": "131810",
         "name": "R-001",
         "amount": 2000.0,
-        "fee": 0.0
+        "fee": 0.02
     }
 ];;;
 
 // ===== 数据版本控制 =====
-const DATA_VERSION = 23;
+const DATA_VERSION = 24;
 
 (function checkDataVersion() {
     var storedVer = localStorage.getItem('blog_data_version');
