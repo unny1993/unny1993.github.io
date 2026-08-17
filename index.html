@@ -1316,6 +1316,13 @@
                 if (liveByOff.hasOwnProperty(i)) lastCum = liveByOff[i];
                 liveArr[i] = (cap + lastCum) / cap;   // 实盘净值（基准 1.000）
             }
+            // 账户快照对齐：曲线历史段仍按现金流，最新段对齐券商App真值（含未实现浮盈）
+            if (ACCOUNT_SNAPSHOT && ACCOUNT_SNAPSHOT.totalAsset) {
+                var snapNav = ACCOUNT_SNAPSHOT.totalAsset / cap;
+                var tailStart = Math.min(todayOff0, N);
+                for (var ti = tailStart; ti <= N; ti++) liveArr[ti] = snapNav;
+            }
+
             // 基准年化序列 + ±1σ 置信带（对数正态：log(nav) ± σ_ann·√(t/250)）
             var benchArr = new Array(N + 1), benchHi = new Array(N + 1), benchLo = new Array(N + 1);
             for (var ib = 0; ib <= N; ib++) {
@@ -1430,6 +1437,11 @@
             var totalNet = (d && d.totalNet) ? d.totalNet : 0;
             var curLive = cap + totalNet;            // 正常资金额度（¥）
             var curNav = curLive / cap;             // 实盘净值（基准 1.000）
+            // 账户快照优先：当前实盘净值/距百万差额直接用券商App真值
+            if (ACCOUNT_SNAPSHOT && ACCOUNT_SNAPSHOT.totalAsset) {
+                curLive = ACCOUNT_SNAPSHOT.totalAsset;
+                curNav = curLive / cap;
+            }
             var gap = target - curLive;
             var yrsToM = Math.log(target / curLive) / Math.log(1 + cagr);
             var proj = new Date(liveStart.getTime());
@@ -1537,6 +1549,8 @@
             var canvas = document.getElementById('monkey-gauge-canvas');
             if (!canvas || !B) return;
             var curLive = (d && d.totalNet) ? (B.liveCapital + d.totalNet) : B.liveCapital;
+            // 账户快照优先：倒计时进度直接用券商App真值
+            if (ACCOUNT_SNAPSHOT && ACCOUNT_SNAPSHOT.totalAsset) curLive = ACCOUNT_SNAPSHOT.totalAsset;
             var prog = Math.max(0, Math.min(1, curLive / B.target));
             var sz = 150, dpr = window.devicePixelRatio || 1;
             canvas.width = sz * dpr; canvas.height = sz * dpr; canvas.style.width = sz + 'px'; canvas.style.height = sz + 'px';
