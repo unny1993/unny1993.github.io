@@ -116,10 +116,20 @@ const DEFAULT_COLLECTIONS = [
     }
 ];;
 
-const DEFAULT_TRADE_RECORDS = [];;
+const DEFAULT_TRADE_RECORDS = [
+    {
+        "id": 1,
+        "date": "2026-08-17",
+        "type": "买入",
+        "code": "600667",
+        "name": "太极实业",
+        "amount": 6738.0,
+        "fee": 1.2
+    }
+];;;
 
 // ===== 数据版本控制 =====
-const DATA_VERSION = 20;
+const DATA_VERSION = 21;
 
 (function checkDataVersion() {
     var storedVer = localStorage.getItem('blog_data_version');
