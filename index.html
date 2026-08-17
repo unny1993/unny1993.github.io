@@ -791,6 +791,18 @@
     (function() {
         var INITIAL_CAPITAL = 9314.41;
 
+        // ===== 账户快照（数据源：券商App截图，盘后对齐交割单）=====
+        // 博客无法获取持仓实时市值，故「期末总资产」直接读此快照真值，
+        // 而非由交易现金流推算（现金流不含未实现浮盈）。
+        var ACCOUNT_SNAPSHOT = {
+            updated: "2026-08-17",
+            initialCapital: 9314.41,
+            totalAsset: 9729.80,
+            cash: 571.66,
+            positionValue: 7158.00,
+            frozen: 2000.14
+        };
+
         function getTradeRecords() {
             try {
                 var stored = localStorage.getItem('blog_trade_records');
@@ -938,6 +950,19 @@
                 el = document.getElementById('metric-net-pnl');
                 if (el) { el.className = 'metric-value' + (d.totalNet >= 0 ? ' metric-value-red' : ' metric-value-green'); }
                 setText('metric-total-asset', formatCurrency(d.totalAsset));
+                // 账户快照优先：覆盖总资产/净盈亏/副标题为券商App真值
+                if (ACCOUNT_SNAPSHOT && ACCOUNT_SNAPSHOT.totalAsset) {
+                    var snapNet = ACCOUNT_SNAPSHOT.totalAsset - ACCOUNT_SNAPSHOT.initialCapital;
+                    setText('metric-total-asset', formatCurrency(ACCOUNT_SNAPSHOT.totalAsset));
+                    setText('metric-net-pnl', formatCurrency(snapNet));
+                    var nel = document.getElementById('metric-net-pnl');
+                    if (nel) { nel.className = 'metric-value' + (snapNet >= 0 ? ' metric-value-red' : ' metric-value-green'); }
+                    setText('metric-sub-capital', '本金 ¥' + ACCOUNT_SNAPSHOT.initialCapital.toLocaleString('zh-CN', { maximumFractionDigits: 2 }) +
+                        ' · 现金 ' + ACCOUNT_SNAPSHOT.cash.toLocaleString('zh-CN', { maximumFractionDigits: 2 }) +
+                        ' / 持仓 ' + ACCOUNT_SNAPSHOT.positionValue.toLocaleString('zh-CN', { maximumFractionDigits: 2 }) +
+                        ' / 冻结 ' + ACCOUNT_SNAPSHOT.frozen.toLocaleString('zh-CN', { maximumFractionDigits: 2 }) +
+                        '（券商App ' + ACCOUNT_SNAPSHOT.updated + '）');
+                }
                 setText('metric-max-drawdown', formatPct(d.maxDrawdown));
                 el = document.getElementById('metric-max-drawdown');
                 if (el) { el.className = 'metric-value metric-value-green'; }
