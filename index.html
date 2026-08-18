@@ -12,7 +12,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css?v=20260810j">
     <style>.bg-canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none}</style>
-    <script src="app.js?v=20260818180228" defer></script>
+    <script src="app.js?v=20260818212050" defer></script>
 </head>
 <body>
     <!-- 访问锁 -->
@@ -795,12 +795,12 @@
         // 博客无法获取持仓实时市值，故「期末总资产」直接读此快照真值，
         // 而非由交易现金流推算（现金流不含未实现浮盈）。
         var ACCOUNT_SNAPSHOT = {
-            updated: "2026-08-17",
+            updated: "2026-08-18",
             initialCapital: 9314.41,
-            totalAsset: 9729.80,
-            cash: 571.66,
-            positionValue: 7158.00,
-            frozen: 2000.14
+            totalAsset: 9470.37,
+            cash: 470.16,
+            positionValue: 0.00,
+            frozen: 9000.00
         };
 
         function getTradeRecords() {

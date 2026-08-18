@@ -152,11 +152,29 @@ const DEFAULT_TRADE_RECORDS = [
         "name": "R-001",
         "amount": 2000.0,
         "fee": 0.02
+    },
+    {
+        "id": 3,
+        "date": "2026-08-18",
+        "type": "股票卖出",
+        "code": "600667",
+        "name": "太极实业",
+        "amount": 6903.0,
+        "fee": 4.52
+    },
+    {
+        "id": 4,
+        "date": "2026-08-18",
+        "type": "逆回购卖出",
+        "code": "204001",
+        "name": "GC001",
+        "amount": 9000.0,
+        "fee": 0.09
     }
-];;;
+];;;;;
 
 // ===== 数据版本控制 =====
-const DATA_VERSION = 26;
+const DATA_VERSION = 28;
 
 (function checkDataVersion() {
     var storedVer = localStorage.getItem('blog_data_version');
