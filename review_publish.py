@@ -126,8 +126,8 @@ def main():
     }
     articles.append(article)
 
-    # 更新/创建「回顾」文集
-    col = next((c for c in collections if c.get('name', '').strip('，,') == COLLECTION_NAME), None)
+    # 更新/创建「回顾」文集（精确匹配含逗号的全名，避免每次发布都新建重复文集）
+    col = next((c for c in collections if c.get('name', '') == COLLECTION_NAME), None)
     if col is None:
         col = {"name": COLLECTION_NAME, "articleIds": []}
         collections.append(col)

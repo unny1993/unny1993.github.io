@@ -119,12 +119,7 @@ const DEFAULT_COLLECTIONS = [
     {
         "name": "回顾,",
         "articleIds": [
-            1
-        ]
-    },
-    {
-        "name": "回顾,",
-        "articleIds": [
+            1,
             6
         ]
     }
@@ -152,7 +147,7 @@ const DEFAULT_TRADE_RECORDS = [
 ];;;
 
 // ===== 数据版本控制 =====
-const DATA_VERSION = 24;
+const DATA_VERSION = 25;
 
 (function checkDataVersion() {
     var storedVer = localStorage.getItem('blog_data_version');
