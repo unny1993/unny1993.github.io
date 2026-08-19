@@ -179,11 +179,20 @@ const DEFAULT_TRADE_RECORDS = [
         "name": "GC001",
         "amount": 9000.0,
         "fee": 0.09
+    },
+    {
+        "id": 5,
+        "date": "2026-08-19",
+        "type": "买入",
+        "code": "600186",
+        "name": "莲花控股",
+        "amount": 7393.07,
+        "fee": 1.07
     }
-];;;;;
+];;;;;;
 
 // ===== 数据版本控制 =====
-const DATA_VERSION = 29;
+const DATA_VERSION = 30;
 
 (function checkDataVersion() {
     var storedVer = localStorage.getItem('blog_data_version');
